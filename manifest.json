@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "minimum_chrome_version": "55",
     "name": "Foogle",
-    "version": "0.0.9",
+    "version": "0.1.0",
     "author": "",
     "homepage_url": "https://www.github.com",
     "icons": {
@@ -11,7 +11,7 @@
     },
     "background": {
         "scripts": [
-            "js/compromise.es6.js", 
+            "js/compromise.es6.min.js", 
             "js/xregexp-all.js",
             "js/queries.js",
             "js/background.js"

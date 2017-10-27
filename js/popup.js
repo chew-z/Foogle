@@ -1,6 +1,9 @@
+//do this in global scope for popup.js
+var background = chrome.extension.getBackgroundPage(); 
+var State;
+
 console.log("I am popup.js");
 
-var State = false;
 
 function handleButton(cmd) {
     let msg = {
@@ -8,12 +11,11 @@ function handleButton(cmd) {
         subject: cmd
     }
     if(cmd == 'action') {
-        State = !State;
         save_options();
         restore_options()
     }
     chrome.runtime.sendMessage(msg , (response) =>  {
-        console.log("handleButton() recived response from background script");
+        console.log("handleButton() recived response from background.js " + JSON.stringify(response.msg));
         if(response === undefined) return;
         let result = response.msg;
         document.getElementById('items').innerHTML = '';
@@ -30,6 +32,7 @@ function handleButton(cmd) {
     });
 }
 
+
 function handleForm() { // Submit reloads destroying persistance
     save_options()
     let msg = {
@@ -40,18 +43,17 @@ function handleForm() { // Submit reloads destroying persistance
     console.log(JSON.stringify(msg));
     chrome.runtime.sendMessage(msg, (response) => {
         console.log("handleClick() received response from background.js");
-        State = response.state;
         document.getElementById('show').value = response.show;
         save_options();
         restore_options()
     });
 }
 
+
 // Saves options to chrome.storage.sync.
 function save_options() {
     let Show = document.getElementById('show').value;
     let items = { 
-        state: State, 
         show: Show 
     }
     chrome.storage.sync.set(items, () => {
@@ -62,19 +64,13 @@ function save_options() {
     });
 }
 
-// Restores select box and checkbox state using the preferences
-// stored in chrome.storage.
+
+// Restores options from chrome.storage.sync.
 function restore_options() {
     // Use default value
-    chrome.storage.sync.get({ state: false, show: 0 }, (items) => {
+    chrome.storage.sync.get({ show: 0 }, (items) => {
         console.log(JSON.stringify(items));
         document.getElementById('show').value = items.show;
-        State = items.state;
-        if( State == true) {
-            document.getElementById('bttn_action').innerHTML = 'Turn Off';
-        } else {
-            document.getElementById('bttn_action').innerHTML = 'Turn On';
-        }
     });
 }
 
@@ -91,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
         () => { handleButton('extracted')}, false);
     document.getElementById("bttn_rss").addEventListener('click', 
         () => { handleButton('rss')}, false);
+    document.getElementById("bttn_history").addEventListener('click', 
+        () => { handleButton('history')}, false);
 
     // document.getElementById("form").addEventListener("submit", 
     //     () => { handleSubmit() }, false);
@@ -99,8 +97,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
+        if (request.msg == "tab closed") {
+            console.log("recived message tab closed");
+            State = false;
+            document.getElementById('bttn_action').innerHTML = 'Turn On';
+        } else if (request.msg == "tab created") {
+            console.log("recived message tab created");
+            State = true;
+            document.getElementById('bttn_action').innerHTML = 'Turn Off'
+        }
+    }
+);
+
 // document.getElementById('save').addEventListener('click',
 //     save_options);
 window.onload = function() {
     console.log("onload" + Date());
+    if(background._tab_id > 0) {
+        State = true;
+        document.getElementById('bttn_action').innerHTML = 'Turn Off';
+    } else {
+        State = false;
+        document.getElementById('bttn_action').innerHTML = 'Turn On';
+    }
+    console.log("on load: Foogle tab active is " + State);
 }

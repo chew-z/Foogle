@@ -5,11 +5,7 @@
 
 var _tab_id = -1;
 var debug = true;
-// store some temporary variables for popup
-var popup_storage = {
-    active: false,
-    show: 0
-}
+var QueryHistory = [];
 
 function log(message) {
     console.log(JSON.stringify(message));
@@ -22,6 +18,26 @@ function content_log(message) {
 }
 
 
+// Saves options to chrome.storage.sync.
+function save_history(q) {
+    chrome.storage.sync.get('history', (obj) => {
+        let history = obj.hasOwnProperty('history') ? obj.history : [];
+        history.push(q);
+        chrome.storage.sync.set({'history': history}, () => {
+            if (chrome.runtime.lastError)
+                console.log(chrome.runtime.lastError);
+            else
+                console.log("History saved successfully");
+        });
+    });
+}
+
+function restore_history() {
+    chrome.storage.sync.get('history', (obj) => {
+        QueryHistory = obj.hasOwnProperty('history') ? obj.history : [];
+    });
+}
+
 function start() {
     //TODO restoreOptions();
     doRssFetch(feedZeitgeist, Zeitgeist);
@@ -31,7 +47,7 @@ function start() {
         if(debug) log('Start: Fetching RSS ' + feeds[i]);
         doRssFetch(feeds[i], RssTitles);
     }
-    console.log("start() finished");
+    log("start() finished");
 }
 
 
@@ -41,12 +57,11 @@ function createTab() {
     let newURL = "http://www.google.com/";
     try {
         //@flow-NotIssue
-        chrome.tabs.create({
-            'active': false,
-            'url': newURL
-        }, function(tab) { 
+        chrome.tabs.create({'active': false, 'url': newURL}, (tab) => { 
             _tab_id = tab.id;
             if(debug) log("Created Foolgle tab " + tab.id);
+            chrome.runtime.sendMessage({msg: "tab created"});
+            chrome.browserAction.setBadgeText({'text': 'On'});
         });
         return 0;
     } catch (exception) {
@@ -61,13 +76,13 @@ function removeTab() {
     try {
         //@flow-NotIssue
         chrome.tabs.remove(_tab_id);
-        chrome.browserAction.setBadgeText({'text': 'Off'});
         return 0;
     } catch (exception) {
         log('Could not create Foolgle tab:' + exception);
         return 1;
     }
 }
+
 
 function toggleTab() {
     if (_tab_id != -1) { // Not initiation. Toggle Foogle tab.
@@ -83,7 +98,7 @@ function toggleTab() {
             }
         });
     } else {
-        if(debug) log("Foogle started. Creating");
+        if(debug) log("Foogle just started. Creating new tab.");
         createTab();
     }
 }
@@ -108,17 +123,17 @@ function sendQuery(tab_id, query) {
 }
 
 // When new tab created
+// When this message comes _tab_id is still undefinied !? so it is useless
 chrome.tabs.onCreated.addListener( (tab) => {
-    if(tab.id == _tab_id) {
-        if(debug) log("New Foolgle tab created " + tab.id);
-    }
-    chrome.browserAction.setBadgeText({'text': 'On'});
+    if(debug) log("received message tab created " + tab.id);
 });
 
-// When tab removed
+// When tab removed - does not fire when flag --enable-fast-unload is set!
 chrome.tabs.onRemoved.addListener( (tabId, removeInfo) => {
     if(tabId == _tab_id) {
+        chrome.runtime.sendMessage({msg: "tab closed"});
         chrome.browserAction.setBadgeText({'text': 'Off'});
+        _tab_id = 0;
     }
 });
 
@@ -129,8 +144,21 @@ chrome.tabs.onUpdated.addListener((tabId , info) => {
         if(debug) log("Foolgle tab " + tabId + " completed loading");
         let t_out = roll(20000, 50000);
         let query = getQuery();
+        // save_history(query) is async and slow !
+        // hence QueryHistory is acting like a local cache for chrome.storage
+        if(debug) log("QueryHistory: " + JSON.stringify(QueryHistory));
+        if(QueryHistory.length > 200) {
+            QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
+            chrome.storage.sync.remove(history, () => {
+                if(debug) log("Pruning history ..");
+                save_history(QueryHistory);
+            });
+        } else {
+            save_history(query)
+        }
         setTimeout(() => {
             sendQuery(_tab_id, query);
+            restore_history();
         }, t_out);
         log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
     }
@@ -152,13 +180,12 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         if(request.subject == 'form') {
             log("From popup form: " + request.show);
             let new_show = parseInt(request.show) + 1;
-            let state_update = false;
-            if(_tab_id > 0) state_update = true;
-            sendResponse({ show: new_show, state: state_update });
+            sendResponse({ show: new_show, });
         }
         if(request.subject == 'zeitgeist') sendResponse({ msg: Zeitgeist });
         if(request.subject == 'rss') sendResponse({ msg: RssTitles });
         if(request.subject == 'extracted') sendResponse({ msg: Extracted });
+        if(request.subject == 'history') sendResponse({ msg: QueryHistory });
     }
     // Only react to messges from Foogle tab
     if( sender.tab !== undefined && sender.tab.id == _tab_id ) {
