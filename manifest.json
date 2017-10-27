@@ -1,0 +1,54 @@
+{
+    "manifest_version": 2,
+    "minimum_chrome_version": "55",
+    "name": "Foogle",
+    "version": "0.0.9",
+    "author": "",
+    "homepage_url": "https://www.github.com",
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png"
+    },
+    "background": {
+        "scripts": [
+            "js/compromise.es6.js", 
+            "js/xregexp-all.js",
+            "js/queries.js",
+            "js/background.js"
+        ]
+    },
+    "browser_action": {
+        "default_icon": "icons/foogle.png",
+        "default_popup": "html/popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "js/jquery.js", 
+                "js/content.js"
+            ]
+        }
+    ],
+    "options_ui": {
+        "page": "html/options.html",
+        "chrome_style": true,
+        "open_in_tab": true
+    },
+    "permissions": [
+        "tabs",
+        "webRequest",
+        "<all_urls>",
+        "storage"
+    ],
+    "commands": {
+        "_execute_browser_action": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+K",
+                "mac": "Command+Shift+K"
+            }
+        }
+    }
+}

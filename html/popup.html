@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Foogle</title>
+        <script type="text/javascript" src="/js/popup.js"></script>
+        <link rel="stylesheet" href="/html/style.css" />
+        <!--link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto+Slab"-->
+    </head>
+    <body class="body" style="width:376px;">
+        <h1 class="heading">Foogle</h1>
+        <div class="float-right" id="main">
+            <button type="button" class="button-large button-outline" id="bttn_action">Turn On</button>
+        </div>
+        <div class="ui-widget">
+            <form id="form" >
+                <fieldset>
+                    <label for="shows">Shows</label>
+                    <input type="text" placeholder="Enter your age" id="show"> </input>
+                    <!-- input type="submit" class="button-primary" id ="submitButton"-->
+                    <button type="button" class="button-primary" id ="submitButton">+1</button>
+                </fieldset>
+            </form>
+        </div>
+        <div id="status"></div>
+        <div id="buttons">
+            <button type="button" class="button-small" id="bttn_zeitgeist">Zeitgeist</button>
+            <button type="button" class="button-small" id="bttn_rss">RSS</button>
+            <button type="button" class="button-small" id="bttn_extracted">Extracted</button>
+            <br/>
+        </div>
+        <div id="container" class="container">
+            <div id="items" class="ul"></div>
+        </div>
+    </body>
+</html>
