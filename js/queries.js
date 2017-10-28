@@ -109,7 +109,7 @@ function isIntersection(a, b) {
 }
 
 // Extract titles from RSS feed
-function extractRssTitles(xmlData, feedUrl, RssTarget) {
+function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
     let rssTitle = "";
     let feedTitles = xmlData.getElementsByTagName("title");
     // if(debug) log(feedTitles);
@@ -133,14 +133,24 @@ function extractRssTitles(xmlData, feedUrl, RssTarget) {
         // addQuery(rssTitle, feedObject.words);
         // addQuery(rssTitle, RssTitles);
     }
+    chrome.storage.sync.set({[RssTargetName]: RssTarget}, () => {
+        // Computed property here (ES6) - [RssTargetName]
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#Computed_property_names
+        if (chrome.runtime.lastError)
+            console.log(chrome.runtime.lastError);
+        else
+            console.log(RssTargetName + " saved successfully");
+    }); 
     //@flow-NotIssue
     if(debug) log('RssTitles : ' + feedObject.name + " --- " + feedObject.words);
     // if(debug) log(RssTitles);
     return 1;
 }
 
-// This had been refactored significantly as it had bugs and poor logic
-function doRssFetch(feedUrl, Target) {
+// Target is the array storing feed headlines
+// We need TargetName (the name of array that stores the date) for storage !
+// This is Poor-Man's storage.onChanged method oh handling async call here
+function doRssFetch(feedUrl, Target, TargetName) {
     if(debug) log('doRssFetch: ' + feedUrl);
     try {
         let req = new XMLHttpRequest();
@@ -148,7 +158,7 @@ function doRssFetch(feedUrl, Target) {
         req.onreadystatechange = function() {
             if (req.readyState == 4 && req.status == 200 && req.responseXML != null) {
                 if(debug) log("doRssFetch: Recieved feed from " + feedUrl);
-                let adds = extractRssTitles(req.responseXML, feedUrl, Target);
+                let adds = extractRssTitles(req.responseXML, feedUrl, Target, TargetName);
                 // if(debug) log(req.responseXML);
                 // if(debug) log(req.responseText);
             }

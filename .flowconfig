@@ -3,6 +3,8 @@
 [include]
 
 [libs]
+chrome
+../flow-interfaces-chrome/interfaces/
 
 [options]
 suppress_comment=\\(.\\|\n\\)*\\@flow-FixMe

@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Foogle</title>
+        <link rel="stylesheet" href="/html/style.css" />
+        <!-- link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto+Slab"-->
+    </head>
+    <body class="body">
+        <h1 class="heading">Foogle</h1>
+        <hr>
+        <div id="container" class="container">
+            <div id="container-top" class="row">
+                <div id="filtered-words-action" class="column column-50 column-offset-25">
+                    <div class="row">
+                        <button id="reset-words" class="button">Re-download</button>
+                    </div>
+                    <div class="row">
+                        <input id="new-word" class="float left" type="text" placeholder="Add Zeitgeist term">
+                        <button id="add-word" class="button">Add</button>
+                    </div>
+                    <div class="row">
+                        <input id="search" type="text" class="float right" placeholder="search" autofocus>
+                        <img src="/icons/magnifying_glass.png" class="magnifying-glass">
+                    </div>
+                </div>
+            </div>
+            <div id="container-content" class="row">
+                <div id="filtered-words-page" class="column column-50 column-offset-25">
+                    <div id="filtered-words"></div>
+                </div>
+            </div>
+            <script type="text/javascript" src="/js/options.js"></script>
+    </body>
+</html>

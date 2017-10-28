@@ -153,13 +153,8 @@ document.addEventListener('visibilitychange', function(){
         max_t = 25;
         bg_log("Not hidden " + max_t);
     }
-})
+}, false)
 // log URL to background
 var URL = document.location.href;
 bg_log(URL);
 sendPage();
-// Sending messages from Content Script
-// chrome.runtime.sendMessage({ message: msg }, (response) => {
-//     console.log(response);
-// });
-//

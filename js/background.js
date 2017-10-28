@@ -18,35 +18,69 @@ function content_log(message) {
 }
 
 
-// Saves options to chrome.storage.sync.
+/*
+Log the storage area that changed,
+then for each item changed,
+log its old value and its new value.
+*/
+function logStorageChange(changes, area) {
+    if(debug) {
+        console.log("Change in storage area: " + area);
+
+        let changedItems = Object.keys(changes);
+
+        for (let item of changedItems) {
+            console.log(item + " has changed:");
+            console.log("Old value: ");
+            console.log(changes[item].oldValue);
+            console.log("New value: ");
+            console.log(changes[item].newValue);
+        }
+    }
+}
+
+
+// Saves QueryHistory to chrome.storage.sync.
 function save_history(q) {
-    chrome.storage.sync.get('history', (obj) => {
-        let history = obj.hasOwnProperty('history') ? obj.history : [];
-        history.push(q);
-        chrome.storage.sync.set({'history': history}, () => {
-            if (chrome.runtime.lastError)
-                console.log(chrome.runtime.lastError);
-            else
-                console.log("History saved successfully");
-        });
+    chrome.storage.sync.set({'History': q}, () => {
+        if (chrome.runtime.lastError)
+            console.log(chrome.runtime.lastError);
+        else
+            console.log("History saved successfully");
+    });
+    //    });
+}
+
+
+function restore_history() {
+    chrome.storage.sync.get('History', (obj) => {
+        QueryHistory = obj.hasOwnProperty('History') ? obj.History : [];
     });
 }
 
-function restore_history() {
-    chrome.storage.sync.get('history', (obj) => {
-        QueryHistory = obj.hasOwnProperty('history') ? obj.history : [];
+
+function restore_zeitgeist() {
+    chrome.storage.sync.get("Zeitgeist", (obj) => {
+        if(obj.Zeitgeist !== undefined) {
+            Zeitgeist = obj.Zeitgeist;
+        } else {
+            Zeitgeist = [];
+            doRssFetch(feedZeitgeist, Zeitgeist, "Zeitgeist"); //doRSSFetch() is async inside
+        }
     });
 }
+
 
 function start() {
     //TODO restoreOptions();
-    doRssFetch(feedZeitgeist, Zeitgeist);
+    restore_zeitgeist();
     var feeds = feedList.split(/~/);
     var i = feeds.length;
     while (i--) {
         if(debug) log('Start: Fetching RSS ' + feeds[i]);
-        doRssFetch(feeds[i], RssTitles);
+        doRssFetch(feeds[i], RssTitles, "RssTitles");
     }
+    restore_history();
     log("start() finished");
 }
 
@@ -57,7 +91,7 @@ function createTab() {
     let newURL = "http://www.google.com/";
     try {
         //@flow-NotIssue
-        chrome.tabs.create({'active': false, 'url': newURL}, (tab) => { 
+        chrome.tabs.create({'active': false, 'url': newURL}, (tab) => {
             _tab_id = tab.id;
             if(debug) log("Created Foolgle tab " + tab.id);
             chrome.runtime.sendMessage({msg: "tab created"});
@@ -71,7 +105,7 @@ function createTab() {
 }
 
 
-function removeTab() { 
+function removeTab() {
     if (debug) log('removing Foogle tab');
     try {
         //@flow-NotIssue
@@ -146,19 +180,21 @@ chrome.tabs.onUpdated.addListener((tabId , info) => {
         let query = getQuery();
         // save_history(query) is async and slow !
         // hence QueryHistory is acting like a local cache for chrome.storage
+        if(debug) log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
+        if(debug) log(JSON.stringify(QueryHistory));
+        QueryHistory.push(query);
         if(debug) log("QueryHistory: " + JSON.stringify(QueryHistory));
         if(QueryHistory.length > 200) {
             QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
-            chrome.storage.sync.remove(history, () => {
-                if(debug) log("Pruning history ..");
-                save_history(QueryHistory);
-            });
-        } else {
-            save_history(query)
-        }
+            // chrome.storage.sync.remove(history, () => {
+            //     if(debug) log("Pruning history ..");
+            // });
+        } 
+        save_history(QueryHistory);
+
         setTimeout(() => {
             sendQuery(_tab_id, query);
-            restore_history();
+            // restore_history();
         }, t_out);
         log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
     }
@@ -171,6 +207,8 @@ chrome.tabs.onUpdated.addListener((tabId , info) => {
 chrome.browserAction.onClicked.addListener( (activeTab) => {
     toggleTab();
 });
+
+chrome.storage.onChanged.addListener(logStorageChange);
 
 // Handling incoming messages
 chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
@@ -187,10 +225,16 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         if(request.subject == 'extracted') sendResponse({ msg: Extracted });
         if(request.subject == 'history') sendResponse({ msg: QueryHistory });
     }
+    if (request.from == "options") {
+        log("Pop from options " + request.subject);
+        if(request.subject == 'action') {
+            if (request.action == 'reload-data') restore_zeitgeist();
+        }
+    }
     // Only react to messges from Foogle tab
     if( sender.tab !== undefined && sender.tab.id == _tab_id ) {
         if( request.content_log) content_log(request.content_log);
-        if( request.html_) { 
+        if( request.html_) {
             log("html received");
             extractQueries(request.html_);
         }

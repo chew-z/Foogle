@@ -2,8 +2,6 @@
 var background = chrome.extension.getBackgroundPage(); 
 var State;
 
-console.log("I am popup.js");
-
 
 function handleButton(cmd) {
     let msg = {
@@ -14,10 +12,14 @@ function handleButton(cmd) {
         save_options();
         restore_options()
     }
+    if(document.getElementById('items').innerHTML != ''){
+        location.reload();
+    }
     chrome.runtime.sendMessage(msg , (response) =>  {
         console.log("handleButton() recived response from background.js " + JSON.stringify(response.msg));
         if(response === undefined) return;
         let result = response.msg;
+
         document.getElementById('items').innerHTML = '';
         if( result.length == 0 ) { 
             document.getElementById('items').innerHTML = 'No results';
@@ -98,16 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
-        if (request.msg == "tab closed") {
-            console.log("recived message tab closed");
-            State = false;
-            document.getElementById('bttn_action').innerHTML = 'Turn On';
-        } else if (request.msg == "tab created") {
-            console.log("recived message tab created");
-            State = true;
-            document.getElementById('bttn_action').innerHTML = 'Turn Off'
-        }
+    if (request.msg == "tab closed") {
+        console.log("recived message tab closed");
+        State = false;
+        document.getElementById('bttn_action').innerHTML = 'Turn On';
+    } else if (request.msg == "tab created") {
+        console.log("recived message tab created");
+        State = true;
+        document.getElementById('bttn_action').innerHTML = 'Turn Off'
     }
+}
 );
 
 // document.getElementById('save').addEventListener('click',

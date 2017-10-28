@@ -34,3 +34,11 @@ body {
   line-height: 4.5rem;
   padding: 0 2rem;
 }
+
+.magnifying-glass {
+    height: auto; 
+    width: auto; 
+    max-width: 40px; 
+    max-height: 40px;
+    float: right;
+}

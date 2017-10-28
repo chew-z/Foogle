@@ -4,7 +4,7 @@
     "name": "Foogle",
     "version": "0.1.0",
     "author": "",
-    "homepage_url": "https://www.github.com",
+    "homepage_url": "https://github.com/chew-z/Foogle",
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png"
@@ -34,7 +34,6 @@
     ],
     "options_ui": {
         "page": "html/options.html",
-        "chrome_style": true,
         "open_in_tab": true
     },
     "permissions": [
