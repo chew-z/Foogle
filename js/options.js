@@ -4,24 +4,35 @@ var filteredWordsContainer = document.getElementById("filtered-words");
 var addWordBtn = document.getElementById("add-word");
 var newWord = document.getElementById("new-word");
 var searchInput = document.getElementById("search");
-var Zeitgeist = [""];
-
+// var Zeitgeist = [""];
+var Table = [""];
+var TableName;
 
 function processKeys(e) {
     if (e.keyCode == 13)
         addSpecifiedWord();
 }
 
+/* list all background variables and their values */
+function _inspect_background() {
+    console.log("background: " + Object.prototype.toString.call(background));
+    for(let b in background) { 
+        if(window.hasOwnProperty(b)) console.log(b); 
+    }
+    // WILL fail for some b console.log(JSON.stringify(background[b]));
+}
+
 function load() {
-    chrome.storage.sync.get("Zeitgeist", (obj) => {
-        if(obj.Zeitgeist === undefined) {
-            Zeitgeist = background.Zeitgeist;
+    console.log(JSON.stringify(background[TableName]));
+    chrome.storage.sync.get(TableName, (obj) => {
+        if(obj === undefined) {
+            Table = background[TableName];
         } else {
-            Zeitgeist = obj.Zeitgeist;
+            Table = obj[TableName];
         }
-        console.log(JSON.stringify(Zeitgeist));
-        for (let i = 0; i < Zeitgeist.length; i++)
-            addWord(Zeitgeist[i], i);
+        console.log(JSON.stringify(Table));
+        for (let i = 0; i < Table.length; i++)
+            addWord(Table[i], i);
     });
 }
 
@@ -30,11 +41,11 @@ function load() {
  * and reloads the word list on the other files
  */
 function save() {
-    chrome.storage.sync.set({"Zeitgeist": Zeitgeist}, () => {
+    chrome.storage.sync.set({[TableName]: Table}, () => {
         if (chrome.runtime.lastError)
             console.log(chrome.runtime.lastError);
         else
-            console.log("Zeitgeist saved successfully");
+            console.log(TableName + " saved successfully");
     });
     // background.js
     chrome.runtime.sendMessage({
@@ -55,10 +66,10 @@ function search() {
     }
 
     // hiding everything except the matched words
-    for (let i = 0; i < Zeitgeist.length; i++) {
+    for (let i = 0; i < Table.length; i++) {
         let entry = getFilteredWordEntry(i);
         var regx = new RegExp(searchText);
-        if (regx.test(Zeitgeist[i]))
+        if (regx.test(Table[i]))
             entry.hidden = false;
         else
             entry.hidden = true;
@@ -91,14 +102,14 @@ function showAllFilteredWordEntries() {
 }
 
 function resetWordsList() {
-    chrome.storage.sync.remove("Zeitgeist");
+    chrome.storage.sync.remove(TableName);
     // background.js
     chrome.runtime.sendMessage({
         "from": "options",
         "subject": "action",
         "action": "reload-data"
     });
-    Zeitgeist = [""];
+    Table = [""];
     location.reload();
 }
 
@@ -110,10 +121,10 @@ function deleteWord() {
     let entryContainer = this.parentElement;
     let index = getIndexInParent(entryContainer);
     // deleting data entry
-    Zeitgeist.splice(index, 1);
+    Table.splice(index, 1);
     // deleting the visual element for the entry
     entryContainer.remove();
-    save();
+    save(Table, TableName);
 }
 
 /*
@@ -136,7 +147,7 @@ function addWord(text, index) {
     let textNode = document.createTextNode("Delete");
     deleteBtn.appendChild(textNode);
     deleteBtn.className = "button button-small button-outline";
-    deleteBtn.addEventListener("click", deleteWord);
+    deleteBtn.addEventListener("click", deleteWord );
 
     container.appendChild(input);
     container.appendChild(deleteBtn);
@@ -149,24 +160,24 @@ function addWord(text, index) {
  * specified in the input field
  */
 function addSpecifiedWord() {
-    var text = newWord.value;
+    let text = newWord.value;
     if (text == "") {
         console.log("Cannot add an empty value!");
         return;
     }
-    addWord(text, Zeitgeist.length);
-    Zeitgeist.push(text);
-    save(text);
+    addWord(text, Table.length);
+    Table.push(text);
+    save();
     newWord.value = "";
     // necessary to filter out added word
     // if necessary
-    search();
+    search(Table);
 }
 
 function doStorageChange(changes, area) {
     let changedItems = Object.keys(changes);
     for (let item of changedItems) {
-        if(item == "Zeitgeist") {
+        if(item == TableName) {
             console.log(item + " has changed:");
             location.reload();
         }
@@ -182,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
     resetWordBtn = document.getElementById("reset-words");
     newWord = document.getElementById("new-word");
     searchInput = document.getElementById("search");
+
+    TableName = "Zeitgeist";
     load();
 
     addWordBtn.addEventListener("click", addSpecifiedWord);

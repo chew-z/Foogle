@@ -452,7 +452,7 @@ function getQuery() {
 //Now using XRegExp and allowing also other Unicode scripts not just ISO
 // caled by extractQueries() & extractRssTitles()
 function addQuery(term, queryList) {
-    // TODO - this is duplicating some effort from extractQuerries()
+    // TODO - this is duplicating some effort from extractQueries()
     // if(debug) log('addQuery: received: ' + term);
     // @flow-NotIssue
     let notNLZ = new XRegExp('[^\\p{N}\\p{L}\\p{Z}@\-]+', 'g'); // NLZ - number, letter, separator

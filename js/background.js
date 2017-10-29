@@ -7,6 +7,7 @@ var _tab_id = -1;
 var debug = true;
 var QueryHistory = [];
 
+
 function log(message) {
     console.log(JSON.stringify(message));
 }
@@ -42,19 +43,19 @@ function logStorageChange(changes, area) {
 
 // Saves QueryHistory to chrome.storage.sync.
 function save_history(q) {
-    chrome.storage.sync.set({'History': q}, () => {
+    chrome.storage.sync.set({'QueryHistory': q}, () => {
         if (chrome.runtime.lastError)
             console.log(chrome.runtime.lastError);
         else
-            console.log("History saved successfully");
+            console.log("QueryHistory saved successfully");
     });
     //    });
 }
 
 
 function restore_history() {
-    chrome.storage.sync.get('History', (obj) => {
-        QueryHistory = obj.hasOwnProperty('History') ? obj.History : [];
+    chrome.storage.sync.get('QueryHistory', (obj) => {
+        QueryHistory = obj.hasOwnProperty('QueryHistory') ? obj.QueryHistory : [];
     });
 }
 
@@ -180,22 +181,15 @@ chrome.tabs.onUpdated.addListener((tabId , info) => {
         let query = getQuery();
         // save_history(query) is async and slow !
         // hence QueryHistory is acting like a local cache for chrome.storage
-        if(debug) log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
-        if(debug) log(JSON.stringify(QueryHistory));
+        // if(debug) log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
         QueryHistory.push(query);
         if(debug) log("QueryHistory: " + JSON.stringify(QueryHistory));
         if(QueryHistory.length > 200) {
             QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
-            // chrome.storage.sync.remove(history, () => {
-            //     if(debug) log("Pruning history ..");
-            // });
+            if(debug) log("Pruning history ..");
         } 
         save_history(QueryHistory);
-
-        setTimeout(() => {
-            sendQuery(_tab_id, query);
-            // restore_history();
-        }, t_out);
+        setTimeout(() => { sendQuery(_tab_id, query) }, t_out);
         log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
     }
 });

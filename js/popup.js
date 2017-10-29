@@ -12,9 +12,7 @@ function handleButton(cmd) {
         save_options();
         restore_options()
     }
-    if(document.getElementById('items').innerHTML != ''){
-        location.reload();
-    }
+
     chrome.runtime.sendMessage(msg , (response) =>  {
         console.log("handleButton() recived response from background.js " + JSON.stringify(response.msg));
         if(response === undefined) return;
