@@ -6,7 +6,7 @@
 
 const skipex = [/mins ago/, /days ago/, /hours ago/, /1 day ago/, /1 hour ago/,
     /200/i, /201/i, /Thesaurus/i, /Breaking news/, /Latest news/,
-    /Top stories/, /headlines/, /Enjoy/, /Exclusive/,
+    /Top stories/, /headlines/, /Enjoy/, /Exclusive/, /Reuters News/,
     /calendar/i, /advanced/i, /click /i, /terms/i, /Groups/i,
     /Images/, /Maps/, /search/i, /cache/i, /similar/i, /&#169;/,
     /sign in/i, /help/i, /download/i, /print/i, /Books/i, /rss/i,
@@ -23,14 +23,12 @@ const skipex = [/mins ago/, /days ago/, /hours ago/, /1 day ago/, /1 hour ago/,
     /<more>/, /Travel/, /TripAdvisor/, /Personals/, /Local/, /Trademarks/,
     /cache/i, /similar/i, /login/i, /mail/i, /feed/i, /Followers/,
     /likes/, /Following/, /http/i]
-// const Zeitgeist = ["facebook","twitter","snap","instagram","youtube","netflix","amazon","spotify","uber","iphone 7","laptop","games","weather","hotels","guesthouse","flights","deals","cheap","Bali","Thailand","Dominicana","Bangkok","Denpasar","Chiangi","JFK","Heathrow","Los Angeles","Phuket","Pataya","Jokowi","UEFA","Air Asia","Traveloka","Tiger","Donald Trump","7-Eleven","Lee Chong Wei","Nintendo Switch","Google Pixel 2","Emily Blunt","Elizabeth Debicki","Tom Hiddleston"]
-
-const feedList = "http://feeds.reuters.com/reuters/MostRead~http://feeds.feedburner.com/itunes-alternative-chart~http://stackoverflow.com/feeds/tag/android+or+html+or+javascript+or+python~https://news.ycombinator.com/rss";
+var feedList = ["http://feeds.reuters.com/reuters/MostRead", "http://feeds.feedburner.com/itunes-alternative-chart", "http://stackoverflow.com/feeds/tag/android+or+html+or+javascript+or+python", "https://news.ycombinator.com/rss"];
 const feedZeitgeist = "https://trends.google.com/trends/hottrends/atom/feed?pn=p5";
 var RssTitles = [];
 var Extracted = [];
 var Zeitgeist = [];
-
+var QueryHistory = [];
 
 function chomp(s) {
     return s.replace(/\n/g, '');
@@ -115,12 +113,12 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
     // if(debug) log(feedTitles);
     if (!feedTitles || feedTitles.length < 2) {
         log("no items(" + feedTitles + ") for rss-feed: " + feedUrl);
-        return 0;
+        return -1;
     }
     let feedObject = {};
     feedObject.name = feedTitles[0].firstChild.nodeValue;
     feedObject.words = [];
-    if(debug) log('addRssTitles : ' + feedTitles[0].firstChild.nodeValue);
+    if(debug) log('extractRssTitles : ' + feedTitles[0].firstChild.nodeValue);
     for (let i = 1; i < feedTitles.length; i++) {
         if (feedTitles[i].firstChild) {
             rssTitle = feedTitles[i].firstChild.nodeValue;
@@ -133,18 +131,26 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
         // addQuery(rssTitle, feedObject.words);
         // addQuery(rssTitle, RssTitles);
     }
-    chrome.storage.sync.set({[RssTargetName]: RssTarget}, () => {
-        // Computed property here (ES6) - [RssTargetName]
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#Computed_property_names
-        if (chrome.runtime.lastError)
-            console.log(chrome.runtime.lastError);
-        else
-            console.log(RssTargetName + " saved successfully");
-    }); 
+    if(RssTargetName == "Zeitgeist") {
+        save("Zeitgeist");
+    } else if (RssTargetName == "RssTitles") {
+        save("RssTitles");
+    } else {
+        log("Unknown RssTarget " + RssTargetName);
+        return -1
+    }
+    // chrome.storage.sync.set({[RssTargetName]: RssTarget}, () => {
+    //     // Computed property here (ES6) - [RssTargetName]
+    //     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#Computed_property_names
+    //     if (chrome.runtime.lastError)
+    //         console.log(chrome.runtime.lastError);
+    //     else
+    //         console.log(RssTargetName + " saved successfully");
+    // }); 
     //@flow-NotIssue
     // if(debug) log('RssTitles : ' + feedObject.name + " --- " + feedObject.words);
     // if(debug) log(RssTitles);
-    return 1;
+    return 0;
 }
 
 // Target is the array storing feed headlines
@@ -511,11 +517,14 @@ function extractQueries(html) {
     //  Here we prune extracted queries
     // keeping maximum of 200
     while (Extracted.length > 200) {
-        log("Trimming RSS feeds");
+        log("Trimming Extracted queries");
         let r = roll(0, Extracted.length - 1);
         Extracted.splice(r, 1);
     }
-    // if(debug) log(Extracted);
+    if(debug) log(Extracted);
+    save("Extracted");
+
+    return 0;
 }
 
 

@@ -69,9 +69,9 @@ function search() {
     }
 
     // hiding everything except the matched words
-    for (let i = 0; i < Table.length; i++) {
+    for(let i = 0; i < Table.length; i++) {
         let entry = getFilteredWordEntry(i);
-        var regx = new RegExp(searchText);
+        let regx = new RegExp(searchText);
         if (regx.test(Table[i]))
             entry.hidden = false;
         else
@@ -140,19 +140,20 @@ function deleteWord() {
 function addWord(text, index) {
     filteredWordsContainer = document.getElementById("filtered-words");
     let container = document.createElement("div");
-    container.class = "float-right";
+    container.class = "container";
     container.dataset.index = index;
 
     let input = document.createElement("input");
     input.type = "text";
-    input.class = "";
     input.readOnly = true;
     input.value = text;
+    input.className = "input";
 
     let deleteBtn = document.createElement("button");
     let textNode = document.createTextNode("Delete");
     deleteBtn.appendChild(textNode);
-    deleteBtn.className = "button button-small button-outline";
+    deleteBtn.className = "button button-delete button-outline";
+    deleteBtn.style = "float: right;";
     deleteBtn.addEventListener("click", deleteWord );
 
     container.appendChild(input);

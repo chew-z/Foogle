@@ -7,7 +7,7 @@ const REFRESH_INTERVAL = 15;
 const MAX_HISTORY = 250;
 var _tab_id = -1;
 var debug = true;
-var QueryHistory = []; // Zeitgeist and RssTitles are definied in queries.js
+// Zeitgeist, RssTitles and other Tables are definied in queries.js
 // default screen for options page
 var options_select = "Zeitgeist";
 
@@ -33,16 +33,14 @@ log its old value and its new value.
 */
 function logStorageChange(changes, area) {
     if(debug) {
-        console.log("Change in storage area: " + area);
-
+       console.log("Change in storage area: " + area);
         let changedItems = Object.keys(changes);
-
         for (let item of changedItems) {
-            console.log(item + " has changed:");
-            console.log("Old value: ");
-            console.log(changes[item].oldValue);
-            console.log("New value: ");
-            console.log(changes[item].newValue);
+           console.log(item + " has changed:");
+           console.log("Old value: ");
+           console.log(changes[item].oldValue);
+           console.log("New value: ");
+           console.log(changes[item].newValue);
         }
     }
 }
@@ -59,8 +57,12 @@ function save(TableName) {
         Table = QueryHistory;
     else if(TableName == "RssTitles")
         Table = RssTitles;
+    else if(TableName == "feedList")
+        Table = feedList;
+    else if(TableName == "Extracted")
+        Table = Extracted;
     else {
-        log("Error: Unknown Table");
+       console.log("Error: Unknown Table " + TableName);
         return -1
     }
 
@@ -78,29 +80,31 @@ function save(TableName) {
  * restores array (by variable name) from chrome.storage or re-fetches
  */
 function restore(TableName) {
-    log("restoring " + TableName);
+   console.log("restoring " + TableName);
     chrome.storage.sync.get(TableName, (obj) => {
         if(obj.hasOwnProperty(TableName)) {
-            log("restoring " + TableName + " from storage");
+           console.log("restoring " + TableName + " from storage");
             if(TableName == "QueryHistory") {
                 QueryHistory = obj[TableName];
             } else if(TableName == "RssTitles") {
                 RssTitles = obj[TableName];
             } else if(TableName == "Zeitgeist") {
                 Zeitgeist = obj[TableName];
+            } else if(TableName == "Extracted") {
+                Extracted = obj[TableName];
+            } else if(TableName == "feedList") {
+                feedList = obj[TableName];
             }
         } else {
-            log("re-downloading " + TableName);
+           console.log("re-downloading " + TableName);
             if(TableName == "QueryHistory") {
                 QueryHistory = [];
             } else if(TableName == "RssTitles") {
                 RssTitles = [];
-                let feeds = feedList.split(/~/);
-                let i = feeds.length;
-                while (i--) {
-                    if(debug) log('Start: Fetching RSS ' + feeds[i]);
-                    doRssFetch(feeds[i], RssTitles, "RssTitles");
-                }
+                feedList.forEach( f => {
+                    if(debug) console.log('Start: Fetching RSS ' + f);
+                    doRssFetch(f, RssTitles, "RssTitles");
+                });
             } else if(TableName == "Zeitgeist") {
                 Zeitgeist = [];
                 doRssFetch(feedZeitgeist, Zeitgeist, "Zeitgeist"); //doRSSFetch() is async inside
@@ -118,10 +122,11 @@ function timed_refresh() {
     let now = new Date().getTime();
     chrome.storage.sync.get({ last_refresh: 0 }, (obj) => {
         if(obj.hasOwnProperty('last_refresh')) {
-            log("Last refresh " + obj.last_refresh);
+           console.log("Last refresh " + new Date(obj.last_refresh));
             if(minutes(now - obj.last_refresh) > REFRESH_INTERVAL) {
-                log("Time for refresh");
+               console.log("Time for refresh");
                 // REFRESH - destroy storage and let it be re-download
+                chrome.storage.sync.remove("Extracted");
                 chrome.storage.sync.remove("Zeitgeist");
                 chrome.storage.sync.remove("RssTitles");
                 chrome.storage.sync.set({ "last_refresh": now });
@@ -137,46 +142,48 @@ function start() {
     //TODO restoreOptions();
     //
     timed_refresh();
+    restore("feedList");
+    restore("QueryHistory");
     // timed_refresh removes tables async and it needs some time.
     // we need to get undefined from storage in order to trigger 
     // re-fetching
     setTimeout(() => {
-        restore("QueryHistory");
+        restore("Extracted");
         restore("Zeitgeist");
         restore("RssTitles");
-        log("start() finished");
+       console.log("start() finished");
     }, 5000);
 }
 
 
 function createTab() {
-    if (debug) log('Creating new tab for Foogle')
+    if (debug) console.log('Creating new tab for Foogle')
     // let newURL = "http://www.duckduckgo.com/html";
     let newURL = "http://www.google.com/";
     try {
         //@flow-NotIssue
         chrome.tabs.create({'active': false, 'url': newURL}, (tab) => {
             _tab_id = tab.id;
-            if(debug) log("Created Foolgle tab " + tab.id);
+            if(debug) console.log("Created Foolgle tab " + tab.id);
             chrome.runtime.sendMessage({msg: "tab created"});
             chrome.browserAction.setBadgeText({'text': 'On'});
         });
         return 0;
     } catch (exception) {
-        log('Could not create Foolgle tab:' + exception);
+       console.log('Could not create Foolgle tab:' + exception);
         return -1;
     }
 }
 
 
 function removeTab() {
-    if (debug) log('removing Foogle tab');
+    if (debug) console.log('removing Foogle tab');
     try {
         //@flow-NotIssue
         chrome.tabs.remove(_tab_id);
         return 0;
     } catch (exception) {
-        log('Could not create Foolgle tab:' + exception);
+       console.log('Could not create Foolgle tab:' + exception);
         return 1;
     }
 }
@@ -188,15 +195,15 @@ function toggleTab() {
         chrome.tabs.get(_tab_id, function() {
             if (chrome.runtime.lastError) {
                 console.log(chrome.runtime.lastError.message);
-                if(debug) log("Foogle tab does not exist. Creating");
+                if(debug) console.log("Foogle tab does not exist. Creating");
                 createTab();
             } else {
-                if(debug) log("Foogle tab " + _tab_id + " exists. Removing.");
+                if(debug) console.log("Foogle tab " + _tab_id + " exists. Removing.");
                 removeTab();
             }
         });
     } else {
-        if(debug) log("Foogle just started. Creating new tab.");
+        if(debug) console.log("Foogle just started. Creating new tab.");
         createTab();
     }
 }
@@ -207,7 +214,7 @@ function updateTab(tab_id, newURL) {
         //@flow-NotIssue
         chrome.tabs.update(tab_id, {url: newURL});
     } catch (exception) {
-        log('Could not update Foolgle tab:' + exception);
+       console.log('Could not update Foolgle tab:' + exception);
         return -1;
     }
     return 0;
@@ -217,14 +224,14 @@ function updateTab(tab_id, newURL) {
 function sendQuery(tab_id, query) {
     //@flow-NotIssue
     chrome.tabs.sendMessage(tab_id, { "query": query }, (response) => {
-        log(response)});
+       console.log(response)});
 }
 
 
 // When new tab created
 // When this message comes _tab_id is still undefinied !? so it is useless
 chrome.tabs.onCreated.addListener( (tab) => {
-    if(debug) log("received message tab created " + tab.id);
+    if(debug) console.log("received message tab created " + tab.id);
 });
 
 // When tab removed - does not fire when flag --enable-fast-unload is set!
@@ -240,22 +247,22 @@ chrome.tabs.onRemoved.addListener( (tabId, removeInfo) => {
 //@flow-NotIssue
 chrome.tabs.onUpdated.addListener((tabId , info) => {
     if (tabId == _tab_id && info.status === 'complete') {
-        if(debug) log("Foolgle tab " + tabId + " completed loading");
+        if(debug) console.log("Foolgle tab " + tabId + " completed loading");
         let t_out = roll(20000, 50000);
         let query = getQuery();
         // save_history(query) is async and slow !
         // hence QueryHistory is acting like a local cache for chrome.storage
-        // if(debug) log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
+        // if(debug) console.log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
         QueryHistory.push(query);
-        if(debug) log("QueryHistory: " + JSON.stringify(QueryHistory));
+        if(debug) console.log("QueryHistory: " + JSON.stringify(QueryHistory));
         if(QueryHistory.length > MAX_HISTORY) {
             QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
-            if(debug) log("Pruning history ..");
+            if(debug) console.log("Pruning history ..");
         } 
         // save_history(QueryHistory);
         save("QueryHistory");
         setTimeout(() => { sendQuery(_tab_id, query) }, t_out);
-        log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
+       console.log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
     }
 });
 
@@ -272,10 +279,10 @@ chrome.storage.onChanged.addListener(logStorageChange);
 // Handling incoming messages
 chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
     if (request.from == "popup") {
-        log("Pop from popup " + request.subject);
+       console.log("Pop from popup " + request.subject);
         if(request.subject == 'action') toggleTab();
         if(request.subject == 'form') {
-            log("From popup form: " + request.show);
+           console.log("From popup form: " + request.show);
             let new_show = parseInt(request.show) + 1;
             sendResponse({ show: new_show, });
         }
@@ -285,19 +292,19 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         if(request.subject == 'history') sendResponse({ msg: QueryHistory });
     }
     if (request.from == "options") {
-        log("Pop from options " + request.subject);
+       console.log("Pop from options " + request.subject);
         if(request.subject == 'action' && request.action == 'reload-data') {
             restore(request.table);
         }
-        if(request.subject == 'action' && request.action == 'start') {
-            start();
-        }
+        // if(request.subject == 'action' && request.action == 'start') {
+        //     start();
+        // }
     }
-    // Only react to messges from Foogle tab
+    // Only react to messages from Foogle tab
     if( sender.tab !== undefined && sender.tab.id == _tab_id ) {
         if( request.content_log) content_log(request.content_log);
         if( request.html_) {
-            log("html received");
+           console.log("html received");
             extractQueries(request.html_);
         }
     }

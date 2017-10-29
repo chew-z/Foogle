@@ -3,45 +3,52 @@
         <meta charset="utf-8">
         <title>Foogle</title>
         <link rel="stylesheet" href="/html/style.css" />
+        <script type="text/javascript" src="/js/options.js"></script>
         <!-- link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto+Slab"-->
     </head>
     <body class="body">
         <h1 class="heading">Foogle</h1>
-        <hr>
+
         <div class="container">
             <div class="row">
                 <div class="column column-50 column-offset-25">
                     <label for="selectTable">Select Table</label>
                     <select id="selectTable" name="select"> 
                         <option value="Zeitgeist">Zeitgeist</option> 
+                        <option value="feedList" >Rss Feeds</option>
                         <option value="RssTitles" >Rss Titles</option>
-                        <option value="QueryHistory" selected>Query History</option>
+                        <option value="Extracted">Extracted Text from Queries</option>
+                        <option value="QueryHistory">Query History</option>
                     </select>
                 </div>
             </div>
         </div>
-        <hr>
+
         <div id="container" class="container">
             <div id="container-top" class="row">
-                <div id="filtered-words-action" class="column column-50 column-offset-25">
+                <div id="filtered-words-action" class="column column-60 column-offset-20">
                     <div class="row">
-                        <button id="reset-words" class="button">Re-download</button>
+                        <div class="column column-60 column-offset-20">
+                            <button id="reset-words" class="button button-right">Re-download</button>
+                        </div>
                     </div>
                     <div class="row">
-                        <input id="new-word" class="float left" type="text" placeholder="Add Zeitgeist term">
-                        <button id="add-word" class="button">Add</button>
+                        <input id="new-word" class="column column-80" type="text" placeholder="Add new item">
+                        <div class="column column-20">
+                            <button id="add-word" class="button button-outline">Add</button>
+                        </div>
                     </div>
+                    <br/>
                     <div class="row">
-                        <input id="search" type="text" class="float right" placeholder="search" autofocus>
                         <img src="/icons/magnifying_glass.png" class="magnifying-glass">
+                        <input id="search" type="text" placeholder="search" autofocus>
                     </div>
                 </div>
             </div>
             <div id="container-content" class="row">
-                <div id="filtered-words-page" class="column column-50 column-offset-25">
-                    <div id="filtered-words"></div>
+                <div id="filtered-words-page" class="column column-60 column-offset-20">
+                    <div id="filtered-words" class="clearfix"></div>
                 </div>
             </div>
-            <script type="text/javascript" src="/js/options.js"></script>
     </body>
 </html>

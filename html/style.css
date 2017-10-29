@@ -1,39 +1,59 @@
 @import url("milligram.min.css");
 
 body {
-  font-family: 'Roboto Slab', serif;
+    font-family: 'Roboto Slab', serif;
 }
 
 /* Extending The Inheritances */
 
 /* Custom color */
 .button-black {
-  background-color: black;
-  border-color: black;
+    background-color: black;
+    border-color: black;
 }
 .button-black.button-clear,
 .button-black.button-outline {
-  background-color: transparent;
-  color: black;
+    background-color: transparent;
+    color: black;
 }
 .button-black.button-clear {
-  border-color: transparent;
+    border-color: transparent;
 }
 
 /* Custom size */
 .button-small {
-  font-size: .8rem;
-  height: 2.8rem;
-  line-height: 2.8rem;
-  padding: 0 1.5rem;
+    font-size: .8rem;
+    height: 2.8rem;
+    line-height: 2.8rem;
+    padding: 0 1.5rem;
 }
 
+
 .button-large {
-  font-size: 1.4rem;
-  height: 4.5rem;
-  line-height: 4.5rem;
-  padding: 0 2rem;
+    font-size: 1.4rem;
+    height: 4.5rem;
+    line-height: 4.5rem;
+    padding: 0 2rem;
 }
+
+
+.button-right {
+    float: right;
+}
+
+.button-delete {
+    font-size: .8rem;
+    height: 2.8rem;
+    line-height: 2.8rem;
+    padding: 0 1.5rem;
+    float: right;
+}
+
+
+.input {
+    float: left;
+}
+
 
 .magnifying-glass {
     height: auto; 
@@ -42,3 +62,5 @@ body {
     max-height: 40px;
     float: right;
 }
+
+
