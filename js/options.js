@@ -4,7 +4,7 @@ var filteredWordsContainer = document.getElementById("filtered-words");
 var addWordBtn = document.getElementById("add-word");
 var newWord = document.getElementById("new-word");
 var searchInput = document.getElementById("search");
-// var Zeitgeist = [""];
+
 var Table = [""];
 var TableName;
 
@@ -25,10 +25,13 @@ function _inspect_background() {
 function load() {
     console.log(JSON.stringify(background[TableName]));
     chrome.storage.sync.get(TableName, (obj) => {
-        if(obj === undefined) {
-            Table = background[TableName];
-        } else {
+        if(obj.hasOwnProperty(TableName)) {
             Table = obj[TableName];
+            console.log("storage: " + JSON.stringify(Table));
+        } else {
+            Table = background[TableName];
+            console.log("background: " + JSON.stringify(Table));
+
         }
         console.log(JSON.stringify(Table));
         for (let i = 0; i < Table.length; i++)
@@ -102,12 +105,15 @@ function showAllFilteredWordEntries() {
 }
 
 function resetWordsList() {
-    chrome.storage.sync.remove(TableName);
+    if(TableName == "Zeitgeist" || TableName == "RssTitles") {
+        chrome.storage.sync.remove(TableName);
+    }
     // background.js
     chrome.runtime.sendMessage({
         "from": "options",
         "subject": "action",
-        "action": "reload-data"
+        "action": "reload-data",
+        "table": TableName
     });
     Table = [""];
     location.reload();
@@ -124,7 +130,7 @@ function deleteWord() {
     Table.splice(index, 1);
     // deleting the visual element for the entry
     entryContainer.remove();
-    save(Table, TableName);
+    save();
 }
 
 /*
@@ -193,18 +199,21 @@ document.addEventListener('DOMContentLoaded', () => {
     resetWordBtn = document.getElementById("reset-words");
     newWord = document.getElementById("new-word");
     searchInput = document.getElementById("search");
-
-    TableName = "Zeitgeist";
+    selectTable = document.getElementById("selectTable");
+    
+    console.log(JSON.stringify(background["options_select"]));
+    selectTable.value = background.options_select;
+    TableName = background.options_select;;
     load();
 
     addWordBtn.addEventListener("click", addSpecifiedWord);
     resetWordBtn.addEventListener("click", resetWordsList);
+    selectTable.addEventListener("change", () => {
+        background.options_select = selectTable.value;
+        location.reload();
+    });
     // triggered when search value's changed
     searchInput.addEventListener("input", search);
     document.onkeydown = processKeys;
 
 });
-
-window.onload = function() {
-    console.log("onload " + Date());
-}

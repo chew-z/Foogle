@@ -3,9 +3,13 @@
 // @flow-NotIssue
 "use strict"
 
+const REFRESH_INTERVAL = 15;
+const MAX_HISTORY = 250;
 var _tab_id = -1;
 var debug = true;
-var QueryHistory = [];
+var QueryHistory = []; // Zeitgeist and RssTitles are definied in queries.js
+// default screen for options page
+var options_select = "Zeitgeist";
 
 
 function log(message) {
@@ -18,9 +22,12 @@ function content_log(message) {
     console.log("CONTENT: " + JSON.stringify(message));
 }
 
+function minutes(msecs) {
+    return Math.floor(msecs / 60000)
+}
 
 /*
-Log the storage area that changed,
+Logs that storage area that changed,
 then for each item changed,
 log its old value and its new value.
 */
@@ -41,32 +48,86 @@ function logStorageChange(changes, area) {
 }
 
 
-// Saves QueryHistory to chrome.storage.sync.
-function save_history(q) {
-    chrome.storage.sync.set({'QueryHistory': q}, () => {
+/* 
+ * saves array (by variable name) to chrome.storage
+ */
+function save(TableName) {
+    let Table //TODO - without local copy? Does it matter?
+    if(TableName == "Zeitgeist")
+        Table = Zeitgeist;
+    else if(TableName == "QueryHistory")
+        Table = QueryHistory;
+    else if(TableName == "RssTitles")
+        Table = RssTitles;
+    else {
+        log("Error: Unknown Table");
+        return -1
+    }
+
+    chrome.storage.sync.set({[TableName]: Table}, () => {
         if (chrome.runtime.lastError)
             console.log(chrome.runtime.lastError);
         else
-            console.log("QueryHistory saved successfully");
+            console.log(TableName + " saved successfully");
     });
-    //    });
+    return 0
 }
 
 
-function restore_history() {
-    chrome.storage.sync.get('QueryHistory', (obj) => {
-        QueryHistory = obj.hasOwnProperty('QueryHistory') ? obj.QueryHistory : [];
-    });
-}
-
-
-function restore_zeitgeist() {
-    chrome.storage.sync.get("Zeitgeist", (obj) => {
-        if(obj.Zeitgeist !== undefined) {
-            Zeitgeist = obj.Zeitgeist;
+/* 
+ * restores array (by variable name) from chrome.storage or re-fetches
+ */
+function restore(TableName) {
+    log("restoring " + TableName);
+    chrome.storage.sync.get(TableName, (obj) => {
+        if(obj.hasOwnProperty(TableName)) {
+            log("restoring " + TableName + " from storage");
+            if(TableName == "QueryHistory") {
+                QueryHistory = obj[TableName];
+            } else if(TableName == "RssTitles") {
+                RssTitles = obj[TableName];
+            } else if(TableName == "Zeitgeist") {
+                Zeitgeist = obj[TableName];
+            }
         } else {
-            Zeitgeist = [];
-            doRssFetch(feedZeitgeist, Zeitgeist, "Zeitgeist"); //doRSSFetch() is async inside
+            log("re-downloading " + TableName);
+            if(TableName == "QueryHistory") {
+                QueryHistory = [];
+            } else if(TableName == "RssTitles") {
+                RssTitles = [];
+                let feeds = feedList.split(/~/);
+                let i = feeds.length;
+                while (i--) {
+                    if(debug) log('Start: Fetching RSS ' + feeds[i]);
+                    doRssFetch(feeds[i], RssTitles, "RssTitles");
+                }
+            } else if(TableName == "Zeitgeist") {
+                Zeitgeist = [];
+                doRssFetch(feedZeitgeist, Zeitgeist, "Zeitgeist"); //doRSSFetch() is async inside
+            }
+        }
+    });
+} 
+
+
+/* 
+ * refreshes (clears storage and makes it re-fetch from RSS feeds)
+ * after some time had elapsed (days rather then minutes)
+ */
+function timed_refresh() {
+    let now = new Date().getTime();
+    chrome.storage.sync.get({ last_refresh: 0 }, (obj) => {
+        if(obj.hasOwnProperty('last_refresh')) {
+            log("Last refresh " + obj.last_refresh);
+            if(minutes(now - obj.last_refresh) > REFRESH_INTERVAL) {
+                log("Time for refresh");
+                // REFRESH - destroy storage and let it be re-download
+                chrome.storage.sync.remove("Zeitgeist");
+                chrome.storage.sync.remove("RssTitles");
+                chrome.storage.sync.set({ "last_refresh": now });
+            }
+        } else {
+            chrome.storage.sync.set({ "last_refresh": now });
         }
     });
 }
@@ -74,15 +135,17 @@ function restore_zeitgeist() {
 
 function start() {
     //TODO restoreOptions();
-    restore_zeitgeist();
-    var feeds = feedList.split(/~/);
-    var i = feeds.length;
-    while (i--) {
-        if(debug) log('Start: Fetching RSS ' + feeds[i]);
-        doRssFetch(feeds[i], RssTitles, "RssTitles");
-    }
-    restore_history();
-    log("start() finished");
+    //
+    timed_refresh();
+    // timed_refresh removes tables async and it needs some time.
+    // we need to get undefined from storage in order to trigger 
+    // re-fetching
+    setTimeout(() => {
+        restore("QueryHistory");
+        restore("Zeitgeist");
+        restore("RssTitles");
+        log("start() finished");
+    }, 5000);
 }
 
 
@@ -157,6 +220,7 @@ function sendQuery(tab_id, query) {
         log(response)});
 }
 
+
 // When new tab created
 // When this message comes _tab_id is still undefinied !? so it is useless
 chrome.tabs.onCreated.addListener( (tab) => {
@@ -184,11 +248,12 @@ chrome.tabs.onUpdated.addListener((tabId , info) => {
         // if(debug) log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
         QueryHistory.push(query);
         if(debug) log("QueryHistory: " + JSON.stringify(QueryHistory));
-        if(QueryHistory.length > 200) {
+        if(QueryHistory.length > MAX_HISTORY) {
             QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
             if(debug) log("Pruning history ..");
         } 
-        save_history(QueryHistory);
+        // save_history(QueryHistory);
+        save("QueryHistory");
         setTimeout(() => { sendQuery(_tab_id, query) }, t_out);
         log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
     }
@@ -221,8 +286,11 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
     }
     if (request.from == "options") {
         log("Pop from options " + request.subject);
-        if(request.subject == 'action') {
-            if (request.action == 'reload-data') restore_zeitgeist();
+        if(request.subject == 'action' && request.action == 'reload-data') {
+            restore(request.table);
+        }
+        if(request.subject == 'action' && request.action == 'start') {
+            start();
         }
     }
     // Only react to messges from Foogle tab

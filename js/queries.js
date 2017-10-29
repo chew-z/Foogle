@@ -128,7 +128,7 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
         // remove leading numbers in lists like iTunes Top 100
         rssTitle = rssTitle.replace(/\d{1,3}\.\s/g, '');
         rssTitle = rssTitle.replace(/ and | with | a | an | any | it | in | has /gm, ' ');
-        log(rssTitle);
+        // if(debug) log(rssTitle);
         RssTarget.push(rssTitle);
         // addQuery(rssTitle, feedObject.words);
         // addQuery(rssTitle, RssTitles);
@@ -142,7 +142,7 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
             console.log(RssTargetName + " saved successfully");
     }); 
     //@flow-NotIssue
-    if(debug) log('RssTitles : ' + feedObject.name + " --- " + feedObject.words);
+    // if(debug) log('RssTitles : ' + feedObject.name + " --- " + feedObject.words);
     // if(debug) log(RssTitles);
     return 1;
 }
