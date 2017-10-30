@@ -3,19 +3,18 @@
 // @flow-NotIssue
 "use strict"
 
-//TODO - user configurable
-const MAX_EXTRACTED = 40;       // Extracted - too large (c.a. 60) and we hit
+// Extracted - if too large (c.a. 60) and we hit
 // chrome.storage.sync.QUOTA_BYTES_PER_ITEM
-var query_history_max = 100;        // QueryHistory
-var refresh_interval = 180;   //In minutes
-var q_per_hour = 40;            // How many queries per hour
-                                // 40 is high for testing
-var typing_speed = 190;       // chars per minute see function
-                                // next_keypress() in content.js
+const MAX_EXTRACTED = 40;       
+var query_history_max = 100;    // QueryHistory
+var refresh_interval = 180;     //In minutes
+var q_per_hour = 40;            // How many queries per hour 40 is for testing
+var typing_speed = 190;         // chars per minute
+
 var _tab_id = -1;               // Foogle tab ID
 var debug = true;
-// Zeitgeist, RssTitles and other Tables are declared in queries.js which is included
-// see manifest.json
+// Zeitgeist, RssTitles and other Tables are declared in queries.js 
+// which is included see manifest.json
 var options_select = "Zeitgeist"; // Select on options.html page. 1st start, later saved to storage
 
 
@@ -54,7 +53,17 @@ function doStorageChange(changes, area) {
     let changedItems = Object.keys(changes);
     changedItems.forEach( (key) =>  {
         if(key == "q_per_hour") q_per_hour = changes[key].newValue;
-        if(key == "typing_speed") typing_speed = changes[key].newValue;
+        if(key == "typing_speed") { 
+            typing_speed = changes[key].newValue;
+            if (_tab_id > 0) {
+                chrome.tabs.sendMessage(_tab_id, { 
+                    "subject": "typing_speed", 
+                    "typing_speed": typing_speed 
+                }, (response) => {
+                    console.log(response)
+                })
+            }
+        }
         if(key == "refresh_interval") refresh_interval =  changes[key].newValue;;
         if(key == "query_history_max") query_history_max =  changes[key].newValue;;
     });
@@ -76,6 +85,7 @@ function restoreOptions() {
         if(obj.hasOwnProperty("refresh_interval")) refresh_interval = obj.refresh_interval;
     });
 }
+
 
 /* 
  * saves array (by variable name) to chrome.storage
@@ -144,6 +154,7 @@ function restore(TableName) {
     });
 } 
 
+
 function set_storage_variable (Variable, VariableName) {
     chrome.storage.sync.get(VariableName, (obj) => {
         if(obj.hasOwnProperty(VariableName) && obj.VariableName === Variable ) {
@@ -160,6 +171,8 @@ function set_storage_variable (Variable, VariableName) {
  * refreshes (clears storage and makes it re-fetch from RSS feeds)
  * after some time had elapsed (days rather then minutes)
  */
+
+
 function timed_refresh() {
     let now = new Date().getTime();
     chrome.storage.sync.get({ last_refresh: 0 }, (obj) => {
@@ -260,8 +273,9 @@ function updateTab(tab_id, newURL) {
 
 
 function sendQuery(tab_id, query) {
-    chrome.tabs.sendMessage(tab_id, { "query": query }, (response) => {
-        console.log(response)});
+    chrome.tabs.sendMessage(tab_id, { "subject": "query", "query": query }, (response) => {
+        console.log(response)
+    });
 }
 
 
@@ -315,7 +329,7 @@ chrome.browserAction.onClicked.addListener( (activeTab) => {
 
 
 chrome.storage.onChanged.addListener(doStorageChange);
-// chrome.storage.onChanged.addListener(logStorageChange);
+
 
 // Handling incoming messages
 chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
@@ -341,6 +355,10 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         //     start();
         // }
     }
+    if (request.from == "content" && request.subject == "typing_speed") {
+        console.log("From content: " + request.subject);
+        sendResponse({"typing_speed": typing_speed});
+    }
     // Only react to messages from Foogle tab
     if( sender.tab !== undefined && sender.tab.id == _tab_id ) {
         if( request.content_log) content_log(request.content_log);
@@ -349,7 +367,6 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
             extractQueries(request.html_);
         }
     }
-    // sendResponse({ message: "📬 Background has received your message" });
 });
 
 start();

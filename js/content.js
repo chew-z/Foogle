@@ -3,7 +3,8 @@
 // @flow-NotIssue
 "use strict"
 
-var background = chrome.extension.getBackgroundPage(); 
+
+var TYPING_SPEED = 170;
 var speed_up = 5;
 function bg_log(msg) {
     // Log into background.js
@@ -44,6 +45,8 @@ function next_keypress() {
 function sleep (time) {
     return new Promise((resolve) => setTimeout(resolve, time));
 }
+
+
 function getTimingArray() {
     let timers = [];
     for (let i=0; i<5; i++) {
@@ -54,36 +57,50 @@ function getTimingArray() {
     }
     return timers.sort();
 }
+
+
 function downKey(chara, searchBox) {
     let charCode = chara[chara.length-1].charCodeAt(0)
     let evtDown = new KeyboardEvent("keydown", {"charCode":charCode} );
     searchBox.dispatchEvent(evtDown)
 }
+
+
 function pressKey(chara, searchBox) {
     let charCode = chara[chara.length-1].charCodeAt(0)
     let evtPress = new KeyboardEvent("keypress", {"charCode":charCode});
     searchBox.dispatchEvent(evtPress)
 }
+
+
 function inputChar(chara, searchBox) {
     let ev = document.createEvent("Event");
     ev.initEvent("input", true, false);
     searchBox.dispatchEvent(ev);
 }
+
+
 function releaseKey(chara, searchBox) {
     let charCode = chara[chara.length-1].charCodeAt(0)
     let evtUp = new KeyboardEvent( "keyup", {"charCode":charCode});
     searchBox.dispatchEvent(evtUp)
 }
+
+
 function getButton() {
     let bttn = getElementsByAttrValue(document,'button', 'name', 'btnG' );
     if ( !bttn ) bttn = getElebmentsByAttrValue(document,'button', 'name', 'btnK' );
     return bttn;
 }
+
+
 function clickButton() {
     let button = getButton()
     clickElement(button);
     bg_log("search button click")
 }
+
+
 function clickElement(element) {
     let win = document.defaultView;
     if ( !element) return;
@@ -101,6 +118,8 @@ function clickElement(element) {
         element.dispatchEvent(evtCl);
     },timers[2])
 }
+
+
 function getElementsByAttrValue(dom, nodeType, attrName, nodeValue) {
     let outlines = dom.getElementsByTagName(nodeType);
     for (let i = 0; i<outlines.length; i++) {
@@ -109,9 +128,13 @@ function getElementsByAttrValue(dom, nodeType, attrName, nodeValue) {
     }
     return null;
 }
+
 function getElement(doc, aID){
     return (doc.getElementById) ? doc.getElementById(aID): doc.all[aID];
+
 }
+
+
 function typeQuery( queryToSend, currIndex, searchBox, chara, isIncr ) {
     let nextPress ;
     clickElement(searchBox);
@@ -146,6 +169,8 @@ function typeQuery( queryToSend, currIndex, searchBox, chara, isIncr ) {
         window.setTimeout(clickButton, nextPress);
     }
 }
+
+
 function sendQuery(queryToSend)  {
     let searchBox = getElementsByAttrValue(document,'input', 'name', 'q' );
     let searchButton = getButton();
@@ -159,18 +184,28 @@ function sendQuery(queryToSend)  {
         return null;
     }
 }
+
+
 function sendPage() {
     let _html = document.defaultView.document.body.innerHTML
     chrome.runtime.sendMessage({html_: _html});
     bg_log("html sent");
 }
+
+
 // Listening to messages in Context Script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    let query = request.query;
-    console.log(query);
-    sendQuery(query);
-    sendResponse({ message: '📬 Content has received query >>' +  query })
+    if(request.subject == 'query') {
+        let query = request.query;
+        console.log(query);
+        sendQuery(query);
+        sendResponse({ message: '📬 Content has received query >>' +  query })
+    } else if (request.subject == 'typing_speed') {
+        TYPING_SPEED = request.typing_speed;
+        sendResponse({ message: '📬 typing speed ' + TYPING_SPEED })
+    }
 })
+
 
 document.addEventListener('visibilitychange', function(){
     // background pages are throttled by Chrome to 1% CPU max. 
@@ -184,8 +219,19 @@ document.addEventListener('visibilitychange', function(){
         bg_log("Foogle tab not hidden ");
     }
 }, false)
+
+
 // log URL to background
 var URL = document.location.href;
-var TYPING_SPEED = background.TYPING_SPEED;
 bg_log(URL);
 sendPage();
+
+
+chrome.runtime.sendMessage({ 
+        "from": "content",
+        "subject": "typing_speed", 
+    }, (response) => {
+        TYPING_SPEED = response.typing_speed;
+        bg_log("typing speed " + TYPING_SPEED);
+    });
+
