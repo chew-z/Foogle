@@ -3,13 +3,15 @@
 // @flow-NotIssue
 "use strict"
 
-const REFRESH_INTERVAL = 15;
-const MAX_HISTORY = 250;
-var _tab_id = -1;
+//TODO - user configurable
+const REFRESH_INTERVAL = 180;   //In minutes
+const MAX_HISTORY = 250;        // QueryHistory
+const Q_PER_HOUR = 25;          // How many queries per hour
+var _tab_id = -1;               // Foogle tab ID
 var debug = true;
-// Zeitgeist, RssTitles and other Tables are definied in queries.js
-// default screen for options page
-var options_select = "Zeitgeist";
+// Zeitgeist, RssTitles and other Tables are declared in queries.js which is included
+// see manifest.json
+var options_select = "Zeitgeist"; // Select on options.html page. 1st start, later saved to storage
 
 
 function log(message) {
@@ -22,9 +24,6 @@ function content_log(message) {
     console.log("CONTENT: " + JSON.stringify(message));
 }
 
-function minutes(msecs) {
-    return Math.floor(msecs / 60000)
-}
 
 /*
 Logs that storage area that changed,
@@ -248,21 +247,24 @@ chrome.tabs.onRemoved.addListener( (tabId, removeInfo) => {
 chrome.tabs.onUpdated.addListener((tabId , info) => {
     if (tabId == _tab_id && info.status === 'complete') {
         if(debug) console.log("Foolgle tab " + tabId + " completed loading");
-        let t_out = roll(20000, 50000);
+
         let query = getQuery();
         // save_history(query) is async and slow !
         // hence QueryHistory is acting like a local cache for chrome.storage
         // if(debug) console.log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
         QueryHistory.push(query);
-        if(debug) console.log("QueryHistory: " + JSON.stringify(QueryHistory));
+        // if(debug) console.log("QueryHistory: " + JSON.stringify(QueryHistory));
         if(QueryHistory.length > MAX_HISTORY) {
             QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
             if(debug) console.log("Pruning history ..");
         } 
         // save_history(QueryHistory);
         save("QueryHistory");
+        // Schedule next query
+        let t_out = roll_exponential(Q_PER_HOUR); 
+        t_out = Math.floor(t_out * 3600 * 1000); // to miliseconds
         setTimeout(() => { sendQuery(_tab_id, query) }, t_out);
-       console.log("Will make new foogle with term '" + query + "', after " + t_out/1000 + "s delay.");
+        console.log("Will make new foogle with term '" + query + "', after " + minutes_seconds(t_out) + " minutes.");
     }
 });
 

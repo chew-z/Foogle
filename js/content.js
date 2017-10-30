@@ -20,7 +20,7 @@ function getTimingArray() {
     for (let i=0; i<5; i++) {
         // typing is slow when form is in the background tab
         // (throttled to 1% in Chrome)
-        timers.push(Math.floor(Math.random()*max_t))
+        timers.push(roll(0, max_t))
     }
     return timers.sort();
 }
@@ -106,13 +106,13 @@ function typeQuery( queryToSend, currIndex, searchBox, chara, isIncr ) {
         window.setTimeout( function(){
             return releaseKey( chara, searchBox)
         }, timers[4]);
-        bg_log(searchBox.value);
+        bg_log("Typing: " + searchBox.value);
         currIndex++
-        nextPress = roll(5, 2*max_t);
+        nextPress = roll(max_t, 2 * max_t);
         window.setTimeout(typeQuery, nextPress, queryToSend, currIndex, searchBox, chara.slice(), false)
     } else {
-        bg_log(searchBox.value);
-        nextPress = roll(max_t, 2*max_t);
+        bg_log("Typing: " + searchBox.value);
+        nextPress = roll(max_t, 2 * max_t);
         window.setTimeout(clickButton, nextPress);
     }
 }
@@ -139,7 +139,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     let query = request.query;
     console.log(query);
     sendQuery(query);
-    sendResponse({ message: '📬 Content script has received query >>' +  query })
+    sendResponse({ message: '📬 Content has received query >>' +  query })
 })
 
 document.addEventListener('visibilitychange', function(){
@@ -147,10 +147,10 @@ document.addEventListener('visibilitychange', function(){
     // This makes simulated typing, clicking unnaturally slow
     // document.title = document.hidden; // change tab text for demo
     if (document.hidden) {
-        max_t = 5;
+        max_t = 3;
         bg_log("Hidden " + max_t);
     } else {
-        max_t = 25;
+        max_t = 15;
         bg_log("Not hidden " + max_t);
     }
 }, false)
