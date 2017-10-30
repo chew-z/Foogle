@@ -4,12 +4,14 @@
 "use strict"
 
 //TODO - user configurable
-const REFRESH_INTERVAL = 180;   //In minutes
-const MAX_HISTORY = 100;        // QueryHistory
 const MAX_EXTRACTED = 40;       // Extracted - too large (c.a. 60) and we hit
-                                // chrome.storage.sync.QUOTA_BYTES_PER_ITEM
-const Q_PER_HOUR = 40;          // How many queries per hour
+// chrome.storage.sync.QUOTA_BYTES_PER_ITEM
+var query_history_max = 100;        // QueryHistory
+var refresh_interval = 180;   //In minutes
+var q_per_hour = 40;            // How many queries per hour
                                 // 40 is high for testing
+var typing_speed = 190;       // chars per minute see function
+                                // next_keypress() in content.js
 var _tab_id = -1;               // Foogle tab ID
 var debug = true;
 // Zeitgeist, RssTitles and other Tables are declared in queries.js which is included
@@ -35,18 +37,45 @@ log its old value and its new value.
 */
 function logStorageChange(changes, area) {
     if(debug) {
-       console.log("Change in storage area: " + area);
+        console.log("Change in storage area: " + area);
         let changedItems = Object.keys(changes);
-        for (let item of changedItems) {
-           console.log(item + " has changed:");
-           console.log("Old value: ");
-           console.log(changes[item].oldValue);
-           console.log("New value: ");
-           console.log(changes[item].newValue);
-        }
+        changedItems.forEach( (key) => {
+            console.log(key + " has changed:");
+            console.log("Old value: ");
+            console.log(changes[key].oldValue);
+            console.log("New value: ");
+            console.log(changes[key].newValue);
+        });
     }
 }
 
+
+function doStorageChange(changes, area) {
+    let changedItems = Object.keys(changes);
+    changedItems.forEach( (key) =>  {
+        if(key == "q_per_hour") q_per_hour = changes[key].newValue;
+        if(key == "typing_speed") typing_speed = changes[key].newValue;
+        if(key == "refresh_interval") refresh_interval =  changes[key].newValue;;
+        if(key == "query_history_max") query_history_max =  changes[key].newValue;;
+    });
+    logStorageChange(changes, area);
+}
+
+
+function restoreOptions() {
+    chrome.storage.sync.get("q_per_hour", (obj) => {
+        if(obj.hasOwnProperty("q_per_hour") ) q_per_hour = obj.q_per_hour;
+    });
+    chrome.storage.sync.get("typing_speed", (obj) => {
+        if(obj.hasOwnProperty("typing_speed")) typing_speed = obj.typing_speed;
+    });
+    chrome.storage.sync.get("query_history_max", (obj) => {
+        if(obj.hasOwnProperty("query_history_max") ) query_history_max = obj.query_history_max;
+    });
+    chrome.storage.sync.get("refresh_interval", (obj) => {
+        if(obj.hasOwnProperty("refresh_interval")) refresh_interval = obj.refresh_interval;
+    });
+}
 
 /* 
  * saves array (by variable name) to chrome.storage
@@ -64,7 +93,7 @@ function save(TableName) {
     else if(TableName == "Extracted")
         Table = Extracted;
     else {
-       console.log("Error: Unknown Table " + TableName);
+        console.log("Error: Unknown Table " + TableName);
         return -1
     }
 
@@ -82,10 +111,10 @@ function save(TableName) {
  * restores array (by variable name) from chrome.storage or re-fetches
  */
 function restore(TableName) {
-   console.log("restoring " + TableName);
+    console.log("restoring " + TableName);
     chrome.storage.sync.get(TableName, (obj) => {
         if(obj.hasOwnProperty(TableName)) {
-           console.log("restoring " + TableName + " from storage");
+            console.log("restoring " + TableName + " from storage");
             if(TableName == "QueryHistory") {
                 QueryHistory = obj[TableName];
             } else if(TableName == "RssTitles") {
@@ -98,7 +127,7 @@ function restore(TableName) {
                 feedList = obj[TableName];
             }
         } else {
-           console.log("re-downloading " + TableName);
+            console.log("re-downloading " + TableName);
             if(TableName == "QueryHistory") {
                 QueryHistory = [];
             } else if(TableName == "RssTitles") {
@@ -115,6 +144,17 @@ function restore(TableName) {
     });
 } 
 
+function set_storage_variable (Variable, VariableName) {
+    chrome.storage.sync.get(VariableName, (obj) => {
+        if(obj.hasOwnProperty(VariableName) && obj.VariableName === Variable ) {
+            // PASS
+        } else {
+            console.log("Refreshing " + VariableName);
+            chrome.storage.sync.set({  [VariableName]: Variable });
+        }
+    });
+}
+
 
 /* 
  * refreshes (clears storage and makes it re-fetch from RSS feeds)
@@ -124,9 +164,9 @@ function timed_refresh() {
     let now = new Date().getTime();
     chrome.storage.sync.get({ last_refresh: 0 }, (obj) => {
         if(obj.hasOwnProperty('last_refresh')) {
-           console.log("Last refresh " + new Date(obj.last_refresh));
-            if(minutes(now - obj.last_refresh) > REFRESH_INTERVAL) {
-               console.log("Time for refresh");
+            console.log("Last refresh " + new Date(obj.last_refresh));
+            if(minutes(now - obj.last_refresh) > refresh_interval) {
+                console.log("Time for refresh");
                 // REFRESH - destroy storage and let it be re-download
                 chrome.storage.sync.remove("Extracted");
                 chrome.storage.sync.remove("Zeitgeist");
@@ -141,7 +181,7 @@ function timed_refresh() {
 
 
 function start() {
-    //TODO restoreOptions();
+    restoreOptions();
     //
     timed_refresh();
     restore("feedList");
@@ -153,7 +193,7 @@ function start() {
         restore("Extracted");
         restore("Zeitgeist");
         restore("RssTitles");
-       console.log("start() finished");
+        console.log("start() finished");
     }, 5000);
 }
 
@@ -163,7 +203,6 @@ function createTab() {
     // let newURL = "http://www.duckduckgo.com/html";
     let newURL = "http://www.google.com/";
     try {
-        //@flow-NotIssue
         chrome.tabs.create({'active': false, 'url': newURL}, (tab) => {
             _tab_id = tab.id;
             if(debug) console.log("Created Foolgle tab " + tab.id);
@@ -172,7 +211,7 @@ function createTab() {
         });
         return 0;
     } catch (exception) {
-       console.log('Could not create Foolgle tab:' + exception);
+        console.log('Could not create Foolgle tab:' + exception);
         return -1;
     }
 }
@@ -181,11 +220,10 @@ function createTab() {
 function removeTab() {
     if (debug) console.log('removing Foogle tab');
     try {
-        //@flow-NotIssue
         chrome.tabs.remove(_tab_id);
         return 0;
     } catch (exception) {
-       console.log('Could not create Foolgle tab:' + exception);
+        console.log('Could not create Foolgle tab:' + exception);
         return 1;
     }
 }
@@ -193,7 +231,6 @@ function removeTab() {
 
 function toggleTab() {
     if (_tab_id != -1) { // Not initiation. Toggle Foogle tab.
-        //@flow-NotIssue
         chrome.tabs.get(_tab_id, function() {
             if (chrome.runtime.lastError) {
                 console.log(chrome.runtime.lastError.message);
@@ -213,10 +250,9 @@ function toggleTab() {
 
 function updateTab(tab_id, newURL) {
     try {
-        //@flow-NotIssue
         chrome.tabs.update(tab_id, {url: newURL});
     } catch (exception) {
-       console.log('Could not update Foolgle tab:' + exception);
+        console.log('Could not update Foolgle tab:' + exception);
         return -1;
     }
     return 0;
@@ -224,9 +260,8 @@ function updateTab(tab_id, newURL) {
 
 
 function sendQuery(tab_id, query) {
-    //@flow-NotIssue
     chrome.tabs.sendMessage(tab_id, { "query": query }, (response) => {
-       console.log(response)});
+        console.log(response)});
 }
 
 
@@ -246,7 +281,6 @@ chrome.tabs.onRemoved.addListener( (tabId, removeInfo) => {
 });
 
 // When tab updated
-//@flow-NotIssue
 chrome.tabs.onUpdated.addListener((tabId , info) => {
     if (tabId == _tab_id && info.status === 'complete') {
         if(debug) console.log("Foolgle tab " + tabId + " completed loading");
@@ -257,14 +291,14 @@ chrome.tabs.onUpdated.addListener((tabId , info) => {
         // if(debug) console.log("QueryHistory: " + Object.prototype.toString.call(QueryHistory));
         QueryHistory.push(query);
         // if(debug) console.log("QueryHistory: " + JSON.stringify(QueryHistory));
-        if(QueryHistory.length > MAX_HISTORY) {
+        if(QueryHistory.length > query_history_max) {
             QueryHistory = QueryHistory.slice(QueryHistory.length - 100, 200);
             if(debug) console.log("Pruning history ..");
         } 
         // save_history(QueryHistory);
         save("QueryHistory");
         // Schedule next query
-        let t_out = roll_exponential(Q_PER_HOUR); 
+        let t_out = roll_exponential(q_per_hour); 
         t_out = Math.floor(t_out * 3600 * 1000); // to miliseconds
         setTimeout(() => { sendQuery(_tab_id, query) }, t_out);
         console.log("Will make new foogle with term '" + query + "', after " + minutes_seconds(t_out) + " minutes.");
@@ -279,15 +313,17 @@ chrome.browserAction.onClicked.addListener( (activeTab) => {
     toggleTab();
 });
 
-chrome.storage.onChanged.addListener(logStorageChange);
+
+chrome.storage.onChanged.addListener(doStorageChange);
+// chrome.storage.onChanged.addListener(logStorageChange);
 
 // Handling incoming messages
 chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
     if (request.from == "popup") {
-       console.log("Pop from popup " + request.subject);
+        console.log("Pop from popup " + request.subject);
         if(request.subject == 'action') toggleTab();
         if(request.subject == 'form') {
-           console.log("From popup form: " + request.show);
+            console.log("From popup form: " + request.show);
             let new_show = parseInt(request.show) + 1;
             sendResponse({ show: new_show, });
         }
@@ -297,7 +333,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         if(request.subject == 'history') sendResponse({ msg: QueryHistory });
     }
     if (request.from == "options") {
-       console.log("Pop from options " + request.subject);
+        console.log("Pop from options " + request.subject);
         if(request.subject == 'action' && request.action == 'reload-data') {
             restore(request.table);
         }
@@ -309,7 +345,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
     if( sender.tab !== undefined && sender.tab.id == _tab_id ) {
         if( request.content_log) content_log(request.content_log);
         if( request.html_) {
-           console.log("html received");
+            console.log("html received");
             extractQueries(request.html_);
         }
     }

@@ -1,5 +1,11 @@
+// background.js
+// @flow
+// @flow-NotIssue
+"use strict"
 
-var background = chrome.extension.getBackgroundPage(); 
+
+var background = chrome.extension.getBackgroundPage();
+
 var filteredWordsContainer = document.getElementById("filtered-words");
 var addWordBtn = document.getElementById("add-word");
 var newWord = document.getElementById("new-word");
@@ -16,24 +22,22 @@ function processKeys(e) {
 /* list all background variables and their values */
 function _inspect_background() {
     console.log("background: " + Object.prototype.toString.call(background));
-    for(let b in background) { 
-        if(window.hasOwnProperty(b)) console.log(b); 
+    for(let b in background) {
+        if(window.hasOwnProperty(b)) console.log(b);
     }
     // WILL fail for some b console.log(JSON.stringify(background[b]));
 }
 
+
 function load() {
-    console.log(JSON.stringify(background[TableName]));
     chrome.storage.sync.get(TableName, (obj) => {
         if(obj.hasOwnProperty(TableName)) {
             Table = obj[TableName];
-            console.log("storage: " + JSON.stringify(Table));
+            // if(debug) console.log("storage: " + JSON.stringify(Table));
         } else {
             Table = background[TableName];
-            console.log("background: " + JSON.stringify(Table));
-
+            // if(debug) console.log("background: " + JSON.stringify(Table));
         }
-        console.log(JSON.stringify(Table));
         for (let i = 0; i < Table.length; i++)
             addWord(Table[i], i);
     });
@@ -79,6 +83,7 @@ function search() {
     }
 }
 
+
 function getIndexInParent(element) {
     let parent = element.parentElement;
     for (let i = 0; i < parent.childNodes.length; i++) {
@@ -87,6 +92,7 @@ function getIndexInParent(element) {
     }
     return -1;
 }
+
 
 /**
  * goes through filtered word list
@@ -97,12 +103,14 @@ function getFilteredWordEntry(index) {
     return nodes[index];
 }
 
+
 function showAllFilteredWordEntries() {
     let nodes = filteredWordsContainer.childNodes;
     nodes.forEach( (n) => { n.hidden = false; });
     // for (let i = 0; i < nodes.length; i++)
     // nodes[i].hidden = false;
 }
+
 
 function resetWordsList() {
     if(TableName == "Zeitgeist" || TableName == "RssTitles") {
@@ -147,13 +155,13 @@ function addWord(text, index) {
     input.type = "text";
     input.readOnly = true;
     input.value = text;
-    input.className = "input";
+    input.className = "input input-list";
 
     let deleteBtn = document.createElement("button");
     let textNode = document.createTextNode("Delete");
     deleteBtn.appendChild(textNode);
     deleteBtn.className = "button button-delete button-outline";
-    deleteBtn.style = "float: right;";
+    // deleteBtn.style = "float: right;";
     deleteBtn.addEventListener("click", deleteWord );
 
     container.appendChild(input);
@@ -183,38 +191,59 @@ function addSpecifiedWord() {
 
 function doStorageChange(changes, area) {
     let changedItems = Object.keys(changes);
-    for (let item of changedItems) {
-        if(item == TableName) {
-            console.log(item + " has changed:");
+    changedItems.forEach( key => {
+        if(key == TableName) {
+            console.log(key + " has changed:");
             location.reload();
         }
-    }
+    });
 }
 
 
 chrome.storage.onChanged.addListener(doStorageChange);
 
 document.addEventListener('DOMContentLoaded', () => {
-
     addWordBtn = document.getElementById("add-word");
-    resetWordBtn = document.getElementById("reset-words");
-    newWord = document.getElementById("new-word");
     searchInput = document.getElementById("search");
-    selectTable = document.getElementById("selectTable");
-    
-    console.log(JSON.stringify(background["options_select"]));
+    addWordBtn.addEventListener("click", addSpecifiedWord);
+
+    let resetWordBtn = document.getElementById("reset-words");
+    let selectTable = document.getElementById("selectTable");
+    let typingSpeed = document.getElementById("typingSpeed");
+    let querySpeed = document.getElementById("querySpeed");
+    let refreshInterval = document.getElementById("refreshInterval");
+    let queryHistoryMax = document.getElementById("queryHistoryMax");
+
+    queryHistoryMax.value = background.query_history_max;
+    refreshInterval.value = background.refresh_interval;
+    typingSpeed.value = background.typing_speed;
+    querySpeed.value = background.q_per_hour;
     selectTable.value = background.options_select;
     TableName = background.options_select;;
     load();
 
-    addWordBtn.addEventListener("click", addSpecifiedWord);
     resetWordBtn.addEventListener("click", resetWordsList);
+
     selectTable.addEventListener("change", () => {
         background.options_select = selectTable.value;
         location.reload();
     });
+    
+    queryHistoryMax.addEventListener("input", () => {
+        chrome.storage.sync.set({ "query_history_max": queryHistoryMax.value } );
+    });
+    refreshInterval.addEventListener("input", () => {
+        chrome.storage.sync.set({ "refresh_interval": refreshInterval.value } );
+    });
+    typingSpeed.addEventListener("input", () => {
+        chrome.storage.sync.set({ "typing_speed": typingSpeed.value } );
+    });
+    querySpeed.addEventListener("input", () => {
+        chrome.storage.sync.set({ "q_per_hour": querySpeed.value } );
+    });
     // triggered when search value's changed
     searchInput.addEventListener("input", search);
+
     document.onkeydown = processKeys;
 
 });

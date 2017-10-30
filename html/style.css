@@ -41,6 +41,10 @@ body {
     float: right;
 }
 
+.buton-left {
+    float: left;
+}
+
 .button-delete {
     font-size: .8rem;
     height: 2.8rem;
@@ -58,9 +62,24 @@ body {
 .magnifying-glass {
     height: auto; 
     width: auto; 
-    max-width: 40px; 
-    max-height: 40px;
-    float: right;
+    max-width: 32px; 
+    max-height: 32px;
+    float: left;
 }
 
+.logo-foogle {
+    height: auto; 
+    width: auto; 
+    max-width: 64px; 
+    max-height: 64px;
+    float: left;
+}
 
+.input-option {
+    font-weight:bold;
+    text-align: right;
+}
+
+.input-list {
+    font-weight:bold;
+}

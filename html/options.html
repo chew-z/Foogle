@@ -7,48 +7,63 @@
         <!-- link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto+Slab"-->
     </head>
     <body class="body">
+        <img src="/icons/foogle.png" class="logo-foogle">
         <h1 class="heading">Foogle</h1>
-
-        <div class="container">
+        <div id="container" class="container">
             <div class="row">
-                <div class="column column-50 column-offset-25">
-                    <label for="selectTable">Select Table</label>
-                    <select id="selectTable" name="select"> 
-                        <option value="Zeitgeist">Zeitgeist</option> 
-                        <option value="feedList" >Rss Feeds</option>
-                        <option value="RssTitles" >Rss Titles</option>
-                        <option value="Extracted">Extracted Text from Queries</option>
-                        <option value="QueryHistory">Query History</option>
-                    </select>
+                <div class="column column-60"> 
+                    <div id="tableSelection" class="row">
+                        <div class="column column-20">
+                            <label for="selectTable" class="label-inline">Select Table</label>
+                        </div>
+                        <div class="column column-60">
+                            <select id="selectTable" name="select"> 
+                                <option value="Zeitgeist">Zeitgeist</option> 
+                                <option value="feedList" >Rss Feeds</option>
+                                <option value="RssTitles" >Rss Titles</option>
+                                <option value="Extracted">Extracted Text from Queries</option>
+                                <option value="QueryHistory">Query History</option>
+                            </select>
+                        </div>
+                        <div id="resetTable" class="column column-20">
+                            <button id="reset-words" class="button button-outline">Re-download</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div id="filtered-words-action" class="container">
+                            <div class="row">
+                                <div class="column column-80">
+                                    <input id="search" type="text" placeholder="search" autofocus>
+                                </div>
+                                <div class="column column-20">
+                                    <img src="/icons/magnifying_glass.png" class="magnifying-glass">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="column column-80">
+                                    <input id="new-word" type="text" placeholder="Add new item">
+                                </div>
+                                <div class="column column-20">
+                                    <button id="add-word" class="button button-outline">Add</button>
+                                </div>
+                            </div>
+                            <div id="filtered-words-page">
+                                <div id="filtered-words"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column column-30 column-offset-10">
+                    <label for="queryHistoryMax"># History Queries</label>
+                    <input type="number" class="input-option" min="25" step="5" max="150" value="100" id="queryHistoryMax">
+                    <label for="refreshInterval">Refresh interval</label>
+                    <input type="number" class="input-option" min="30" step="15" max="1440" value="720" id="refreshInterval">
+                    <label for="typingSpeed">Average typing speed</label>
+                    <input type="number" class="input-option" min="30" step="10" max="300" value="190" id="typingSpeed">
+                    <label for="querySpeed">Search queries per hour</label>
+                    <input type="number" class="input-option" min="30" step="1" max="300" value="190" id="querySpeed">
                 </div>
             </div>
         </div>
-
-        <div id="container" class="container">
-            <div id="container-top" class="row">
-                <div id="filtered-words-action" class="column column-60 column-offset-20">
-                    <div class="row">
-                        <div class="column column-60 column-offset-20">
-                            <button id="reset-words" class="button button-right">Re-download</button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <input id="new-word" class="column column-80" type="text" placeholder="Add new item">
-                        <div class="column column-20">
-                            <button id="add-word" class="button button-outline">Add</button>
-                        </div>
-                    </div>
-                    <br/>
-                    <div class="row">
-                        <img src="/icons/magnifying_glass.png" class="magnifying-glass">
-                        <input id="search" type="text" placeholder="search" autofocus>
-                    </div>
-                </div>
-            </div>
-            <div id="container-content" class="row">
-                <div id="filtered-words-page" class="column column-60 column-offset-20">
-                    <div id="filtered-words" class="clearfix"></div>
-                </div>
-            </div>
     </body>
 </html>

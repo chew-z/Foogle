@@ -3,8 +3,8 @@
 // @flow-NotIssue
 "use strict"
 
-var speed_up = 3;
-const TYPING_SPEED = 190;   // chars per minute see function next_keypress()
+var background = chrome.extension.getBackgroundPage(); 
+var speed_up = 5;
 function bg_log(msg) {
     // Log into background.js
     chrome.runtime.sendMessage({ content_log: msg }, () => {});
@@ -177,7 +177,7 @@ document.addEventListener('visibilitychange', function(){
     // This makes simulated typing, clicking unnaturally slow
     // document.title = document.hidden; // change tab text for demo
     if (document.hidden) {
-        speed_up = 3;
+        speed_up = 5;
         bg_log("Foogle tab hidden ");
     } else {
         speed_up = 1;
@@ -186,5 +186,6 @@ document.addEventListener('visibilitychange', function(){
 }, false)
 // log URL to background
 var URL = document.location.href;
+var TYPING_SPEED = background.TYPING_SPEED;
 bg_log(URL);
 sendPage();

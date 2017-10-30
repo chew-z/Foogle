@@ -328,6 +328,8 @@ function Queries(type) {
 //     if(debug) console.log(term);
 //     return term;
 // }
+
+
 // here query randomization happens - randomize query type and select random query
 // TODO - improve logic - already improved but ..
 function randomQuery() {
