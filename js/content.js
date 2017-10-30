@@ -3,15 +3,44 @@
 // @flow-NotIssue
 "use strict"
 
-var max_t = 5;
-
-function roll(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+var speed_up = 3;
+const TYPING_SPEED = 190;   // chars per minute see function next_keypress()
 function bg_log(msg) {
     // Log into background.js
     chrome.runtime.sendMessage({ content_log: msg }, () => {});
 }
+
+function roll(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/* 
+ * Exponential random number generator
+ * Time until next arrival
+ * Buses arrive every 30 minutes on average, so that's an average rate of 2 per hour.
+ * Arriving at the bus station, next bus ETA: roll_exponential(2); => 0.32130 hours, 
+ * i.e. 19 minutes
+*/
+function roll_exponential(rate, randomUniform) {
+  // http://en.wikipedia.org/wiki/Exponential_distribution#Generating_exponential_variates
+  rate = rate || 1;
+  // Allow to pass a random uniform value or function - default to Math.random()
+  let U = randomUniform;
+  if (typeof randomUniform === 'function') U = randomUniform();
+  if (!U) U = Math.random();
+  return -Math.log(U)/rate;
+}
+
+function next_keypress() {
+//  avg. 41 WordsPerMinut (Men 44, Women 37) ~= 190 ~ 200 chars per minute.
+// average accuracy 92%. Population < 18 y.o. is twice as fast!
+// speed_up is compensating for Chrome aggressively throttling background pages
+    let t_out = roll_exponential(TYPING_SPEED * speed_up);
+    t_out = Math.floor(t_out * 60 * 1000); // to milliseconds
+    return t_out;
+}
+
+
 function sleep (time) {
     return new Promise((resolve) => setTimeout(resolve, time));
 }
@@ -20,7 +49,8 @@ function getTimingArray() {
     for (let i=0; i<5; i++) {
         // typing is slow when form is in the background tab
         // (throttled to 1% in Chrome)
-        timers.push(roll(0, max_t))
+        // timers.push(roll(0, speed_up))
+        timers.push(next_keypress());
     }
     return timers.sort();
 }
@@ -108,11 +138,11 @@ function typeQuery( queryToSend, currIndex, searchBox, chara, isIncr ) {
         }, timers[4]);
         bg_log("Typing: " + searchBox.value);
         currIndex++
-        nextPress = roll(max_t, 2 * max_t);
+        nextPress = next_keypress();
         window.setTimeout(typeQuery, nextPress, queryToSend, currIndex, searchBox, chara.slice(), false)
     } else {
         bg_log("Typing: " + searchBox.value);
-        nextPress = roll(max_t, 2 * max_t);
+        nextPress = next_keypress();
         window.setTimeout(clickButton, nextPress);
     }
 }
@@ -147,11 +177,11 @@ document.addEventListener('visibilitychange', function(){
     // This makes simulated typing, clicking unnaturally slow
     // document.title = document.hidden; // change tab text for demo
     if (document.hidden) {
-        max_t = 3;
-        bg_log("Hidden " + max_t);
+        speed_up = 3;
+        bg_log("Foogle tab hidden ");
     } else {
-        max_t = 15;
-        bg_log("Not hidden " + max_t);
+        speed_up = 1;
+        bg_log("Foogle tab not hidden ");
     }
 }, false)
 // log URL to background

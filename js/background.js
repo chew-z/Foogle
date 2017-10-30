@@ -5,8 +5,11 @@
 
 //TODO - user configurable
 const REFRESH_INTERVAL = 180;   //In minutes
-const MAX_HISTORY = 250;        // QueryHistory
-const Q_PER_HOUR = 25;          // How many queries per hour
+const MAX_HISTORY = 100;        // QueryHistory
+const MAX_EXTRACTED = 40;       // Extracted - too large (c.a. 60) and we hit
+                                // chrome.storage.sync.QUOTA_BYTES_PER_ITEM
+const Q_PER_HOUR = 40;          // How many queries per hour
+                                // 40 is high for testing
 var _tab_id = -1;               // Foogle tab ID
 var debug = true;
 // Zeitgeist, RssTitles and other Tables are declared in queries.js which is included

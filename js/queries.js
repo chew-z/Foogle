@@ -7,6 +7,7 @@
 const skipex = [/mins ago/, /days ago/, /hours ago/, /1 day ago/, /1 hour ago/,
     /200/i, /201/i, /Thesaurus/i, /Breaking news/, /Latest news/,
     /Top stories/, /headlines/, /Enjoy/, /Exclusive/, /Reuters News/,
+    /Define/, /Definition/, /definition/, /The Urban Dictionary/,
     /calendar/i, /advanced/i, /click /i, /terms/i, /Groups/i,
     /Images/, /Maps/, /search/i, /cache/i, /similar/i, /&#169;/,
     /sign in/i, /help/i, /download/i, /print/i, /Books/i, /rss/i,
@@ -39,15 +40,15 @@ function chomp(s) {
 function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
     let rssTitle = "";
     let feedTitles = xmlData.getElementsByTagName("title");
-    // if(debug) log(feedTitles);
+    // if(debug) console.log(feedTitles);
     if (!feedTitles || feedTitles.length < 2) {
-        log("no items(" + feedTitles + ") for rss-feed: " + feedUrl);
+        console.log("no items(" + feedTitles + ") for rss-feed: " + feedUrl);
         return -1;
     }
     let feedObject = {};
     feedObject.name = feedTitles[0].firstChild.nodeValue;
     feedObject.words = [];
-    if(debug) log('extractRssTitles : ' + feedTitles[0].firstChild.nodeValue);
+    if(debug) console.log('extractRssTitles : ' + feedTitles[0].firstChild.nodeValue);
     for (let i = 1; i < feedTitles.length; i++) {
         if (feedTitles[i].firstChild) {
             rssTitle = feedTitles[i].firstChild.nodeValue;
@@ -55,7 +56,7 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
         // remove leading numbers in lists like iTunes Top 100
         rssTitle = rssTitle.replace(/\d{1,3}\.\s/g, '');
         rssTitle = rssTitle.replace(/ and | with | a | an | any | it | in | has /gm, ' ');
-        // if(debug) log(rssTitle);
+        // if(debug) console.log(rssTitle);
         RssTarget.push(rssTitle);
         // addQuery(rssTitle, feedObject.words);
         // addQuery(rssTitle, RssTitles);
@@ -65,7 +66,7 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
     } else if (RssTargetName == "RssTitles") {
         save("RssTitles");
     } else {
-        log("Unknown RssTarget " + RssTargetName);
+        console.log("Unknown RssTarget " + RssTargetName);
         return -1
     }
     // chrome.storage.sync.set({[RssTargetName]: RssTarget}, () => {
@@ -77,8 +78,8 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
     //         console.log(RssTargetName + " saved successfully");
     // }); 
     //@flow-NotIssue
-    // if(debug) log('RssTitles : ' + feedObject.name + " --- " + feedObject.words);
-    // if(debug) log(RssTitles);
+    // if(debug) console.log('RssTitles : ' + feedObject.name + " --- " + feedObject.words);
+    // if(debug) console.log(RssTitles);
     return 0;
 }
 
@@ -86,22 +87,22 @@ function extractRssTitles(xmlData, feedUrl, RssTarget, RssTargetName) {
 // We need TargetName (the name of array that stores the date) for storage !
 // This is Poor-Man's storage.onChanged method oh handling async call here
 function doRssFetch(feedUrl, Target, TargetName) {
-    if(debug) log('doRssFetch: ' + feedUrl);
+    if(debug) console.log('doRssFetch: ' + feedUrl);
     try {
         let req = new XMLHttpRequest();
         req.open('GET', feedUrl, true); // false == not async but this is depreciated
         req.onreadystatechange = function() {
             if (req.readyState == 4 && req.status == 200 && req.responseXML != null) {
-                if(debug) log("doRssFetch: Recieved feed from " + feedUrl);
+                if(debug) console.log("doRssFetch: Recieved feed from " + feedUrl);
                 let adds = extractRssTitles(req.responseXML, feedUrl, Target, TargetName);
-                // if(debug) log(req.responseXML);
-                // if(debug) log(req.responseText);
+                // if(debug) console.log(req.responseXML);
+                // if(debug) console.log(req.responseText);
             }
         }
         req.send();
         return 0;
     } catch (ex) {
-        log("[WARN]  doRssFetch(" + feedUrl + ")\n" +
+        console.log("[WARN]  doRssFetch(" + feedUrl + ")\n" +
             "  " + ex.message + " | Using defaults...");
         return -1;
     }
@@ -127,7 +128,7 @@ function getKeywords(query) {
     let upper = new RegExp(/[A-Z]|[\u0080-\u024F]/);
     let digit = new RegExp(/[0-9]/);
 
-    // if(debug) log('getKeywords: ' + query);
+    // if(debug) console.log('getKeywords: ' + query);
     rank.fill(0);
     while (i--) { // 1st loop - rank words begining with Uppercase +1
         let word = queryWords[i]
@@ -135,7 +136,7 @@ function getKeywords(query) {
             rank[i] = -1;
             continue;
         }
-        // if(debug) log('getKeywords: ' + word);
+        // if(debug) console.log('getKeywords: ' + word);
         let s = word.charAt(0);
         if  ( s === s.toUpperCase() && upper.test(s) ) { // rank +1
             rank[i] = 1;
@@ -143,20 +144,20 @@ function getKeywords(query) {
             rank[i] = -1;
         }
     }
-    // if(debug) log('getKeywords: ' + rank);
+    // if(debug) console.log('getKeywords: ' + rank);
     i = queryWords.length - 1;
     while (i--) { // 2nd loop - rank sequence of Uppercase words
         if ( rank[i] < 1 ) continue;  // skip empty and digits
         if ( rank[i+1] > 0 )
             rank[i] += rank[i+1];     // rank = length of sequence
     }
-    // if(debug) log('getKeywords: ' + rank);
+    // if(debug) console.log('getKeywords: ' + rank);
     i =  0;
     let keyWords = [];
     while (i < queryWords.length) { // 3rd loop - select sequence of two or more
         if( rank[i] > 1 ) {
             let keyword = queryWords.slice(i, i + rank[i]).join(' ');
-            // if(debug) log('getKeywords: ' + keyword);
+            // if(debug) console.log('getKeywords: ' + keyword);
             keyWords.push(keyword);
             i = i + rank[i]; // and move iteration to the end of sequence
         } else { // move to next
@@ -164,7 +165,7 @@ function getKeywords(query) {
         }
     }
     if ( keyWords.length > 0 ) {
-        if(debug) log('getKeywords: keywords: ' + keyWords);
+        if(debug) console.log('getKeywords: keywords: ' + keyWords);
     }
     return keyWords; // it can return empty [] - so check results
 }
@@ -179,11 +180,11 @@ function nlpQuery(query) {
     let text = nlp(query);
     let terms = text.terms().data();
     let topics = text.topics().data();
-    // if(debug) log(terms);
-    // if(debug) log("NLP topics:" + topics);
+    // if(debug) console.log(terms);
+    // if(debug) console.log("NLP topics:" + topics);
 
     for(let j=0; j < terms.length; j++) {
-        // if(debug) log('nlpQuery: tags: ' + terms[j].text + ' : ' + terms[j].tags.join(' - '));
+        // if(debug) console.log('nlpQuery: tags: ' + terms[j].text + ' : ' + terms[j].tags.join(' - '));
         if ( isIntersection( interestingPartOfSpeech, terms[j].tags ) ) {
             interesting.push( terms[j].text );
         }
@@ -194,25 +195,25 @@ function nlpQuery(query) {
     let uniqueInteresting = interesting.filter(function(elem, index, self) {
         return index == self.indexOf(elem);
     })
-    // log('nlpQuery: Acronym/Person/City/Place/Organization: ' + uniqueInteresting.join(' - '));
+    // console.log('nlpQuery: Acronym/Person/City/Place/Organization: ' + uniqueInteresting.join(' - '));
     let uniqueNG = ng.filter(function(elem, index, self) {
         return index == self.indexOf(elem);
     })
-    // log('nlpQuery: NounGeround: ' + uniqueNG.join(' - '));
+    // console.log('nlpQuery: NounGeround: ' + uniqueNG.join(' - '));
     if(uniqueNG.length > 2) {
         let len = roll_gauss(1, uniqueNG.length - 1);
         let n = shuffleArray(uniqueNG).slice(0, len).join(' ');
-        if(debug) log('nlpQuery: NG: ' + n + ' <-- ' + query );
+        if(debug) console.log('nlpQuery: NG: ' + n + ' <-- ' + query );
         return n;
     } else if ( uniqueInteresting.length > 2 ) {
         let i = randomElement(uniqueInteresting);
-        if(debug) log('nlpQuery: interesting: ' + i + ' <-- ' + query );
+        if(debug) console.log('nlpQuery: interesting: ' + i + ' <-- ' + query );
         return i;
     } else if ( topics.length > 1) {
         //TODO more then one and not short 
         let t = randomElement(topics)
         // @flow-NotIssue
-        if(debug) log('nlpQuery: topic: ' + t.text + ' <-- ' + query );
+        if(debug) console.log('nlpQuery: topic: ' + t.text + ' <-- ' + query );
         // @flow-NotIssue
         return t.text;
     }
@@ -229,20 +230,20 @@ function getSubQuery(query) {
     // with arbitrary weights - another fair guess
     if ( Math.random() > 0.5 && keywords.length  > 0 ) {  // try extracting keywords
         subQuery = randomElement(keywords);
-        log('getSubQuery: Random keywords: ' + subQuery  + ' <-- ' + query);
+        console.log('getSubQuery: Random keywords: ' + subQuery  + ' <-- ' + query);
     } else if (Math.random() < 0.7 ) {                  // select NLP words
         subQuery = nlpQuery(query);
-        log('getSubQuery: NLP: ' + subQuery  + ' <-- ' + query);
+        console.log('getSubQuery: NLP: ' + subQuery  + ' <-- ' + query);
     } else {                                            // select part of query
         let queryLength = queryWords.length;
         let distribution = [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 6, 7, 8];
         let randomLength = distribution[roll(0, distribution.length - 1)];
         //  heavily favor starting at beggining of query
         let randomStart = roll_beta_left(0, queryLength - 1);
-        if(debug) log('randomStart: ' + randomStart + ' randomLength: ' + randomLength);
+        if(debug) console.log('randomStart: ' + randomStart + ' randomLength: ' + randomLength);
         // get query sequence or randomLength (with distribution[] like above)
         subQuery = queryWords.slice(randomStart, Math.min(randomStart + randomLength, queryLength)).join(' ');
-        log('getSubQuery: Random slice: ' + subQuery + ' <-- ' + query );
+        console.log('getSubQuery: Random slice: ' + subQuery + ' <-- ' + query );
     }
 
     return subQuery
@@ -257,14 +258,14 @@ function randomOrganization(queryset) {
     while(i--) {
         // @flow-NotIssue
         let o = nlp(queryset[i]).organizations().data();
-        // if(debug) log(p);
+        // if(debug) console.log(p);
         let j = o.length;
         while(j--) {
-            log(o[j].text);
+            console.log(o[j].text);
             organization.push(o[j].text);
         }
     }
-    log(organization);
+    console.log(organization);
     if (organization.length > 0)
         return randomElement(organization).replace(/^\W+/, '');
 }
@@ -276,14 +277,14 @@ function randomPerson(queryset) {
     while(i--) {
         // @flow-NotIssue
         let p = nlp(queryset[i]).people().data();
-        // if(debug) log(p);
+        // if(debug) console.log(p);
         let j = p.length;
         while(j--) {
-            log(p[j].text);
+            console.log(p[j].text);
             person.push(p[j].text);
         }
     }
-    log(person);
+    console.log(person);
     if (person.length > 0)
         return randomElement(person).replace(/^\W+/, '');
 }
@@ -295,14 +296,14 @@ function randomPlace(queryset) {
     while(i--) {
         // @flow-NotIssue
         let p = nlp(queryset[i]).places().data();
-        // if(debug) log(p);
+        // if(debug) console.log(p);
         let j = p.length;
         while(j--) {
-            log(p[j].text);
+            console.log(p[j].text);
             place.push(p[j].text);
         }
     }
-    log(place);
+    console.log(place);
     if (place.length > 0)
         return randomElement(place).replace(/^\W+/, '');
 }
@@ -324,7 +325,7 @@ function Queries(type) {
 //     if(Math.Random < 0.5) queryset = Extracted;
 //     if(queryset.length == 0) queryset = RssTitles;
 //     let term = randomElement(queryset);
-//     if(debug) log(term);
+//     if(debug) console.log(term);
 //     return term;
 // }
 // here query randomization happens - randomize query type and select random query
@@ -334,14 +335,14 @@ function randomQuery() {
     let qtype = randomElement(distributionOfQueries);
     while ( Queries(qtype).length == 0) {
         qtype = randomElement(distributionOfQueries);
-        if(debug) log('randomQuery: while loop: ' + qtype);
+        if(debug) console.log('randomQuery: while loop: ' + qtype);
     }
-    log('randomQuery: query type: ' + qtype);
+    console.log('randomQuery: query type: ' + qtype);
     if (qtype == 'extracted') {
         let queries = Queries(qtype);
-        // if(debug) log(queries);
+        // if(debug) console.log(queries);
         let query = randomElement(queries);
-        log("extracted query:" + query);
+        console.log("extracted query:" + query);
         let term = nlpQuery(query);
         if (term.split(' ').length > 5 ) {
             term = getSubQuery(term);
@@ -351,7 +352,7 @@ function randomQuery() {
     if (qtype == 'zeitgeist' ) {    // TODO - think of something better here
         let queryset = Queries(qtype);
         let query = randomElement(queryset);
-        log("zeitgeist term: " + query);
+        console.log("zeitgeist term: " + query);
         let term = query;
         return term;
     }
@@ -359,14 +360,14 @@ function randomQuery() {
     if (qtype != 'extracted' && qtype != 'zeitgeist' ) {
         let queryset = Queries(qtype);
         let query = randomElement(queryset);
-        log("query rss: " + query);
+        console.log("query rss: " + query);
         let term = nlpQuery(query);
         if (term.split(' ').length > 5 ) {
             term = getSubQuery(term);
         }
         return term;
     }
-    if(debug) log('randomQuery: term: ' + term);
+    if(debug) console.log('randomQuery: term: ' + term);
     if (!term || term.length < 1)
         throw new Error(" randomQuery: term='" + term);
 
@@ -380,7 +381,7 @@ function getQuery() {
     }
     term = term.replace(/^\s+/, ''); //remove the first space // if (term[0] == ' ') term = term.substr(1);
     if (Math.random() < 0.8) term = term.toLowerCase();
-    log('getQuery: term: ' + term);
+    console.log('getQuery: term: ' + term);
     return term;
 }
 
@@ -388,7 +389,7 @@ function getQuery() {
 // caled by extractQueries() & extractRssTitles()
 function addQuery(term, queryList) {
     // TODO - this is duplicating some effort from extractQueries()
-    // if(debug) log('addQuery: received: ' + term);
+    // if(debug) console.log('addQuery: received: ' + term);
     // @flow-NotIssue
     let notNLZ = new XRegExp('[^\\p{N}\\p{L}\\p{Z}@\-]+', 'g'); // NLZ - number, letter, separator
     term = XRegExp.replace(term, notNLZ, '');
@@ -402,7 +403,7 @@ function addQuery(term, queryList) {
     // test for negation of a single term (eg '-prison')
     if (term.indexOf("-") == 0 && term.indexOf(" ") < 0)
         return false;
-    // if(debug) log('addQuery: added: ' + term);
+    // if(debug) console.log('addQuery: added: ' + term);
     queryList.push(term);
 
     return true;
@@ -412,17 +413,15 @@ function addQuery(term, queryList) {
 // This if optimized for extracion from Google Search result pages
 function extractQueries(html) {
     if (!html) {
-        log("extractQueries: No HTML!");
+        console.log("extractQueries: No HTML!");
         return;
     }
     let possibleSearchResults = html.split("<span class=\"st\">")
-    // if (typeof Extracted == 'undefined') {
-    //     Extracted = [];
-    // }
+    // if (typeof Extracted == 'undefined') Extracted = [];
     let i = possibleSearchResults.length;
     while (i--) {
         let singleSearchResult = possibleSearchResults[i].split('</span>')[0]
-        // if(debug) log('extractQueries: ' + singleSearchResult);
+        // if(debug) console.log('extractQueries: ' + singleSearchResult);
         // Not too short, not too long
         if (singleSearchResult.length < 16 || singleSearchResult.length > 256) continue;
         // remove remaining HTML  tags
@@ -430,27 +429,28 @@ function extractQueries(html) {
         // removes '&amp;', '&nbsp;' etc.
         singleSearchResult = singleSearchResult.replace(/&(.*?);/gm, '');
         if (querySkip(singleSearchResult) ) {
-            // if(debug) log('extractQueries: querySkip: ' + querySkip(singleSearchResult ) + ' : ' + singleSearchResult );
+            // if(debug) console.log('extractQueries: querySkip: ' + querySkip(singleSearchResult ) + ' : ' + singleSearchResult );
             continue;
         }
-        // if(debug) log('extractQueries: ' + singleSearchResult);
+        // if(debug) console.log('extractQueries: ' + singleSearchResult);
         // cleans '-' and ',' '.'  '(' ')' '?'
         singleSearchResult = singleSearchResult.replace(/, |- |\. | \(|\) |\? /gm, ' ');
         // remove English language glue
         let cleanSearchResult = singleSearchResult.replace(/ and | with | a | an | any | it | in | has /gm, ' ');
         // let cleanSearchResult = singleSearchResult;
-        // log('extractQueries: cleaned and added: ' + cleanSearchResult);
+        // console.log('extractQueries: cleaned and added: ' + cleanSearchResult);
         // return results (addQuery() does some more cleaning)
         addQuery(cleanSearchResult, Extracted);
     }
-    //  Here we prune extracted queries
-    // keeping maximum of 200
-    while (Extracted.length > 200) {
-        log("Trimming Extracted queries");
+    //  Here we prune extracted queries keeping maximum of MAX_EXTRACTED
+    //  Small value aggressively rotate extracted queries (which are high noise)
+    //  also with larger vaules (c.a. 60) we hit chrome.storage QUOTA_BYTES_PER_ITEM limit
+    while (Extracted.length > MAX_EXTRACTED) {
+        console.log("Trimming Extracted queries");
         let r = roll(0, Extracted.length - 1);
         Extracted.splice(r, 1);
     }
-    if(debug) log(Extracted);
+    if(debug) console.log(Extracted);
     save("Extracted");
 
     return 0;
