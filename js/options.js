@@ -14,10 +14,12 @@ var searchInput = document.getElementById("search");
 var Table = [""];
 var TableName;
 
+
 function processKeys(e) {
     if (e.keyCode == 13)
         addSpecifiedWord();
 }
+
 
 /* list all background variables and their values */
 function _inspect_background() {
@@ -43,6 +45,7 @@ function load() {
     });
 }
 
+
 /*
  * saves the filtered word list content
  * and reloads the word list on the other files
@@ -58,7 +61,8 @@ function save() {
     chrome.runtime.sendMessage({
         "from": "options",
         "subject": "action",
-        "action": "reload-data"
+        "action": "reload_data",
+        "table": TableName
     });
 }
 
@@ -120,12 +124,13 @@ function resetWordsList() {
     chrome.runtime.sendMessage({
         "from": "options",
         "subject": "action",
-        "action": "reload-data",
+        "action": "reload_data",
         "table": TableName
     });
     Table = [""];
     location.reload();
 }
+
 
 /**
  * deletes the specified word form
@@ -140,6 +145,7 @@ function deleteWord() {
     entryContainer.remove();
     save();
 }
+
 
 /*
  * creates an entry for the word
@@ -170,6 +176,7 @@ function addWord(text, index) {
 
 }
 
+
 /*
  * adds a new word
  * specified in the input field
@@ -180,6 +187,12 @@ function addSpecifiedWord() {
         console.log("Cannot add an empty value!");
         return;
     }
+    if( TableName == "feedList" && Table.length >= background.feeds_max)
+        Table.shift();
+    if( TableName == "QueryHistory" && Table.length >= background.query_history_max)
+        Table.shift();
+    if( TableName == "Extracted" && Table.length >= background.MAX_EXTRACTED)
+        Table.shift();
     addWord(text, Table.length);
     Table.push(text);
     save();
@@ -188,6 +201,7 @@ function addSpecifiedWord() {
     // if necessary
     search(Table);
 }
+
 
 function doStorageChange(changes, area) {
     let changedItems = Object.keys(changes);
@@ -202,7 +216,9 @@ function doStorageChange(changes, area) {
 
 chrome.storage.onChanged.addListener(doStorageChange);
 
+
 document.addEventListener('DOMContentLoaded', () => {
+    newWord = document.getElementById("new-word");
     addWordBtn = document.getElementById("add-word");
     searchInput = document.getElementById("search");
     addWordBtn.addEventListener("click", addSpecifiedWord);

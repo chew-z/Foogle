@@ -70,7 +70,7 @@ function restore_options() {
     // Use default value
     chrome.storage.sync.get({ show: 0 }, (items) => {
         console.log(JSON.stringify(items));
-        document.getElementById('show').value = items.show;
+        // document.getElementById('show').value = items.show;
     });
 }
 
@@ -92,8 +92,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // document.getElementById("form").addEventListener("submit", 
     //     () => { handleSubmit() }, false);
-    document.getElementById("submitButton").addEventListener('click', 
-        () => { handleForm() }, false);
+    // document.getElementById("submitButton").addEventListener('click', 
+    //     () => { handleForm() }, false);
 
 });
 
@@ -113,7 +113,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
 // document.getElementById('save').addEventListener('click',
 //     save_options);
 window.onload = function() {
-    console.log("onload" + Date());
+    console.log("onload " + Date());
     if(background._tab_id > 0) {
         State = true;
         document.getElementById('bttn_action').innerHTML = 'Turn Off';

@@ -6,6 +6,7 @@
 // Extracted - if too large (c.a. 60) and we hit
 // chrome.storage.sync.QUOTA_BYTES_PER_ITEM
 const MAX_EXTRACTED = 40;       
+var feeds_max = 5;              // QueryHistory
 var query_history_max = 100;    // QueryHistory
 var refresh_interval = 180;     //In minutes
 var q_per_hour = 40;            // How many queries per hour 40 is for testing
@@ -15,7 +16,7 @@ var _tab_id = -1;               // Foogle tab ID
 var debug = true;
 // Zeitgeist, RssTitles and other Tables are declared in queries.js 
 // which is included see manifest.json
-var options_select = "Zeitgeist"; // Select on options.html page. 1st start, later saved to storage
+var options_select = "feedList"; // Select on options.html page. 1st start, later saved to storage
 
 
 function log(message) {
@@ -347,7 +348,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         if(request.subject == 'history') sendResponse({ msg: QueryHistory });
     }
     if (request.from == "options") {
-        console.log("Pop from options " + request.subject);
+        console.log("Pop from options " + request.subject + " " + request.action + " " + request.table);
         if(request.subject == 'action' && request.action == 'reload-data') {
             restore(request.table);
         }
@@ -356,7 +357,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         // }
     }
     if (request.from == "content" && request.subject == "typing_speed") {
-        console.log("From content: " + request.subject);
+        console.log("Request from Content: " + request.subject);
         sendResponse({"typing_speed": typing_speed});
     }
     // Only react to messages from Foogle tab

@@ -3,7 +3,7 @@
 // @flow-NotIssue
 "use strict"
 
-
+//TODO - limit crazy typos
 var TYPING_SPEED = 170;
 var speed_up = 5;
 function bg_log(msg) {
@@ -161,7 +161,7 @@ function typeQuery( queryToSend, currIndex, searchBox, chara, isIncr ) {
         }, timers[4]);
         bg_log("Typing: " + searchBox.value);
         currIndex++
-        nextPress = next_keypress();
+        nextPress = next_keypress() + timers[4];
         window.setTimeout(typeQuery, nextPress, queryToSend, currIndex, searchBox, chara.slice(), false)
     } else {
         bg_log("Typing: " + searchBox.value);
