@@ -52,16 +52,16 @@ function handleForm() { // Submit reloads destroying persistance
 
 // Saves options to chrome.storage.sync.
 function save_options() {
-    let Show = document.getElementById('show').value;
-    let items = { 
-        show: Show 
-    }
-    chrome.storage.sync.set(items, () => {
-        // Update status to let user know options were saved.
-        document.getElementById('status').textContent = 'Options saved.';
-        setTimeout(() => { 
-            document.getElementById('status').textContent = ''}, 1200);
-    });
+    // let Show = document.getElementById('show').value;
+    // let items = { 
+    //     show: Show 
+    // }
+    // chrome.storage.sync.set(items, () => {
+    //     // Update status to let user know options were saved.
+    //     document.getElementById('status').textContent = 'Options saved.';
+    //     setTimeout(() => { 
+    //         document.getElementById('status').textContent = ''}, 1200);
+    // });
 }
 
 

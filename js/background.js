@@ -283,7 +283,7 @@ function sendQuery(tab_id, query) {
 // When new tab created
 // When this message comes _tab_id is still undefinied !? so it is useless
 chrome.tabs.onCreated.addListener( (tab) => {
-    if(debug) console.log("received message tab created " + tab.id);
+    // if(debug) console.log("received message tab created " + tab.id);
 });
 
 // When tab removed - does not fire when flag --enable-fast-unload is set!
@@ -357,7 +357,7 @@ chrome.runtime.onMessage.addListener( (request, sender, sendResponse) => {
         // }
     }
     if (request.from == "content" && request.subject == "typing_speed") {
-        console.log("Request from Content: " + request.subject);
+        // console.log("Request from Content: " + request.subject);
         sendResponse({"typing_speed": typing_speed});
     }
     // Only react to messages from Foogle tab
